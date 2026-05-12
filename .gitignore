@@ -1,0 +1,39 @@
+# macOS / editors
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and local runtime configuration
+.env
+.env.*
+!.env.example
+config/devices.yaml
+
+# Runtime data
+data/*
+!data/.gitkeep
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
