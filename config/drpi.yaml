@@ -1,0 +1,25 @@
+drpi:
+  db_path: data/energy.db
+
+  # источник
+  agg_table_name: agg_5min
+  metric_name: active_power_avg
+
+  # таблица результатов
+  results_table_name: drpi_results
+
+  # как часто сервис проверяет новые агрегаты
+  poll_interval: 60.0
+
+  # базовые production-параметры
+  source_mode: all_plus_total
+  window_size: 288
+
+  q_baseline: 0.2
+  flexible_share_target: 0.5
+
+  w1: 0.5
+  w2: 0.3
+  w3: 0.2
+
+  auto_init_db: true

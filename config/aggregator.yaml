@@ -1,0 +1,31 @@
+aggregator:
+  db_path: data/energy.db
+
+  # как часто запускать цикл агрегатора
+  poll_interval: 30.0
+
+  # исходная таблица
+  raw_table_name: raw_data
+
+  # политика хранения raw_data
+  raw_retention_sec: 86400   # 1 сутки
+
+  # окна агрегации, сек
+  aggregation_windows_sec:
+    - 300    # 5 min
+    - 600    # 10 min
+    - 900    # 15 min
+    - 1800   # 30 min
+    - 3600   # 60 min
+
+  # метрика, которая участвует потом в DRPI / SSA
+  power_metric_name: active_power_avg
+
+  # прочие метрики, для которых тоже считаем среднее
+  auxiliary_metrics:
+    - voltage_phase_avg
+    - current_avg
+    - frequency
+
+  # автоматически создавать таблицы
+  auto_init_db: true

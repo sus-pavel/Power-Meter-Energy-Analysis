@@ -1,0 +1,49 @@
+devices:
+  - name: PowerMeter_1
+    host: 192.168.1.100
+    port: 502
+    unit_id: 1
+    address_mode: minus_400000
+    enabled: true
+    timeout: 1.5
+    registers:
+      - name: voltage_phase_avg
+        address: 403035
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+      - name: current_avg
+        address: 403009
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+      - name: frequency
+        address: 403109
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+      - name: active_power_avg
+        address: 403059
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+  - name: PowerMeter_2
+    host: 192.168.1.101
+    port: 502
+    unit_id: 2
+    address_mode: minus_400000
+    enabled: false
+    timeout: 1.5
+    registers:
+      - name: active_power_avg
+        address: 403059
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+

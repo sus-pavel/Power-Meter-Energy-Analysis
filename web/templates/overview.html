@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block header_controls %}
+<div class="controls-row">
+  <button id="mode-online-btn" class="control-btn active">Сейчас / Online</button>
+
+  <select id="year-select" class="control-select">
+    <option value="">Год</option>
+    {% for year in year_options %}
+    <option value="{{ year }}">{{ year }}</option>
+    {% endfor %}
+  </select>
+
+  <select id="month-select" class="control-select">
+    <option value="">Месяц</option>
+    {% for month in month_options %}
+    <option value="{{ month }}">{{ "%02d"|format(month) }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="overview-root"
+     data-default-mode="{{ defaults.mode }}"
+     data-default-year="{{ defaults.year or '' }}"
+     data-default-month="{{ defaults.month or '' }}">
+
+  <section class="cards-grid cards-grid--3">
+    <div class="card metric-card">
+      <div class="metric-card__title">Текущий DRPI</div>
+
+      <div class="metric-card__content">
+        <div class="metric-card__value-wrap">
+          <div id="overview-current-drpi" class="metric-value">—</div>
+        </div>
+
+        <div class="metric-card__footer">
+          <canvas id="overview-drpi-sparkline" class="sparkline-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card metric-card">
+      <div class="metric-card__title">Суммарная мощность, кВт</div>
+
+      <div class="metric-card__content">
+        <div class="metric-card__value-wrap">
+          <div id="overview-total-power" class="metric-value">—</div>
+        </div>
+
+        <div class="metric-card__footer">
+          <canvas id="overview-power-sparkline" class="sparkline-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card metric-card metric-card--compact-center">
+      <div class="metric-card__title">Активно счётчиков</div>
+
+      <div class="metric-card__content">
+        <div class="metric-card__value-wrap">
+          <div id="overview-active-meters" class="metric-value">—</div>
+        </div>
+
+        <div id="overview-reference-ts" class="metric-subtext">—</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="overview-main-grid">
+    <div class="left-column">
+      <div class="card">
+        <div class="card-title">PowerMeter_1</div>
+        <canvas id="meter-chart-1" class="meter-chart"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-title">PowerMeter_2</div>
+        <canvas id="meter-chart-2" class="meter-chart"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-title">PowerMeter_3</div>
+        <canvas id="meter-chart-3" class="meter-chart"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-title">PowerMeter_4</div>
+        <canvas id="meter-chart-4" class="meter-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="right-column">
+      <div class="card heatmap-card">
+        <div class="card-title">Тепловая карта DRPI</div>
+        <div class="heatmap-legend" aria-hidden="true">
+          <span>низкий</span>
+          <div class="heatmap-legend__bar"></div>
+          <span>высокий</span>
+        </div>
+        <div id="overview-heatmap-container"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="/static/js/overview.js"></script>
+{% endblock %}

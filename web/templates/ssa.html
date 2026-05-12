@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block header_controls %}
+<div class="controls-row">
+  <button id="ssa-run-btn-header" class="control-btn control-btn--success">Начать расчёт</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="ssa-root"
+     data-default-start-at="{{ defaults.start_at }}"
+     data-default-end-at="{{ defaults.end_at }}"
+     data-default-aggregation-min="{{ defaults.aggregation_min }}"
+     data-default-window-points="{{ defaults.window_points }}"
+     data-default-component-count="{{ defaults.component_count }}"
+     data-default-cluster-count="{{ defaults.cluster_count }}">
+
+  <section class="ssa-controls-panel">
+    <div class="ssa-control-block">
+      <div class="card-title">Счётчики для анализа</div>
+      <div id="ssa-meter-selector" class="ssa-meter-selector">
+        {% for option in meter_options %}
+        <label class="ssa-meter-pill">
+          <input type="checkbox" class="ssa-meter-checkbox" value="{{ option.value }}" {% if loop.first %}checked{% endif %} />
+          <span>{{ option.label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="metric-subtext">Если выбрано несколько счётчиков, анализируется сумма активных мощностей.</div>
+    </div>
+
+    <div class="ssa-controls-grid">
+      <div class="ssa-control-field">
+        <label for="ssa-start-at">Дата начала анализа</label>
+        <input id="ssa-start-at" class="control-input" type="datetime-local" value="{{ defaults.start_at }}" />
+      </div>
+
+      <div class="ssa-control-field">
+        <label for="ssa-end-at">Дата конца анализа</label>
+        <input id="ssa-end-at" class="control-input" type="datetime-local" value="{{ defaults.end_at }}" />
+      </div>
+
+      <div class="ssa-control-field">
+        <label for="ssa-aggregation-min">Размер агрегации</label>
+        <select id="ssa-aggregation-min" class="control-select">
+          {% for value in aggregation_options %}
+          <option value="{{ value }}" {% if value == defaults.aggregation_min %}selected{% endif %}>{{ value }} минут</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="ssa-control-field">
+        <label for="ssa-window-points">Окно SSA, точки</label>
+        <input id="ssa-window-points" class="control-input" type="number" min="2" step="1" value="{{ defaults.window_points }}" />
+        <div id="ssa-window-hours" class="metric-subtext">—</div>
+      </div>
+
+      <div class="ssa-control-field">
+        <label for="ssa-component-count">Количество компонент</label>
+        <input id="ssa-component-count" class="control-input" type="number" min="2" step="1" value="{{ defaults.component_count }}" />
+      </div>
+
+      <div class="ssa-control-field">
+        <label for="ssa-cluster-count">Количество кластеров</label>
+        <input id="ssa-cluster-count" class="control-input" type="number" min="1" step="1" value="{{ defaults.cluster_count }}" />
+      </div>
+    </div>
+
+    <div class="ssa-controls-actions">
+      <button id="ssa-run-btn" class="control-btn control-btn--success">Начать расчёт</button>
+      <div id="ssa-status" class="metric-subtext">—</div>
+    </div>
+  </section>
+
+  <section class="cards-grid ssa-summary-grid">
+    <div class="card metric-card ssa-summary-card">
+      <div class="card-title">Объект анализа</div>
+      <div id="ssa-summary-object" class="metric-value metric-value--small">—</div>
+    </div>
+    <div class="card metric-card ssa-summary-card">
+      <div class="card-title">Дата начала анализа</div>
+      <div id="ssa-summary-start" class="metric-value metric-value--small">—</div>
+    </div>
+    <div class="card metric-card ssa-summary-card">
+      <div class="card-title">Дата конца анализа</div>
+      <div id="ssa-summary-end" class="metric-value metric-value--small">—</div>
+    </div>
+    <div class="card metric-card ssa-summary-card">
+      <div class="card-title">Компоненты / кластеры</div>
+      <div id="ssa-summary-components" class="metric-value metric-value--small">—</div>
+    </div>
+  </section>
+
+  <section class="ssa-section">
+    <h2 class="ssa-section-title">Исходный временной ряд</h2>
+    <div class="card ssa-plot-card">
+      <div id="ssa-original-plot" class="ssa-plot ssa-plot--large"></div>
+    </div>
+  </section>
+
+  <section class="ssa-section">
+    <h2 class="ssa-section-title">SSA diagnostics</h2>
+    <div class="ssa-grid-3">
+      <div class="card ssa-plot-card"><div id="ssa-wcorr-plot" class="ssa-plot"></div></div>
+      <div class="card ssa-plot-card"><div id="ssa-cumulative-plot" class="ssa-plot"></div></div>
+      <div class="card ssa-plot-card"><div id="ssa-scatter-plot" class="ssa-plot"></div></div>
+    </div>
+  </section>
+
+  <section class="ssa-section">
+    <h2 class="ssa-section-title">Временной ряд и все полученные компоненты</h2>
+    <div class="ssa-grid-2">
+      <div class="card ssa-plot-card"><div id="ssa-grouped-plot" class="ssa-plot"></div></div>
+      <div class="card ssa-plot-card"><div id="ssa-components-plot" class="ssa-plot"></div></div>
+    </div>
+  </section>
+
+  <section class="ssa-section">
+    <h2 class="ssa-section-title">Реконструированные кластеры</h2>
+    <div class="card ssa-plot-card">
+      <div id="ssa-clusters-plot" class="ssa-plot ssa-plot--large"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="/static/js/ssa.js"></script>
+{% endblock %}

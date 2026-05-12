@@ -1,0 +1,212 @@
+devices:
+
+  # =========================================================
+  # PowerMeter_1
+  # =========================================================
+  - name: PowerMeter_1
+    host: 192.168.1.4
+    port: 502
+    unit_id: 21
+    address_mode: minus_400000
+    enabled: true
+    timeout: 1.5
+
+    registers:
+      - name: voltage_phase_avg
+        address: 403035
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: current_avg
+        address: 403009
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: frequency
+        address: 403109
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: active_power_avg
+        address: 403059
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+
+  # =========================================================
+  # PowerMeter_2
+  # =========================================================
+  - name: PowerMeter_2
+    host: 192.168.1.4
+    port: 502
+    unit_id: 22
+    address_mode: minus_400000
+    enabled: true
+    timeout: 1.5
+
+    registers:
+      - name: voltage_phase_avg
+        address: 403035
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: current_avg
+        address: 403009
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: frequency
+        address: 403109
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: active_power_avg
+        address: 403059
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+
+  # =========================================================
+  # PowerMeter_3
+  # =========================================================
+  - name: PowerMeter_3
+    host: 192.168.1.4
+    port: 502
+    unit_id: 23
+    address_mode: minus_400000
+    enabled: true
+    timeout: 1.5
+
+    registers:
+      - name: voltage_phase_avg
+        address: 403035
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: current_avg
+        address: 403009
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: frequency
+        address: 403109
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: active_power_avg
+        address: 403059
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+
+  # =========================================================
+  # PowerMeter_4
+  # =========================================================
+  - name: PowerMeter_4
+    host: 192.168.1.4
+    port: 502
+    unit_id: 24
+    address_mode: minus_400000
+    enabled: true
+    timeout: 1.5
+
+    registers:
+      - name: voltage_phase_avg
+        address: 403035
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: current_avg
+        address: 403009
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: frequency
+        address: 403109
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: active_power_avg
+        address: 403059
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+
+  # =========================================================
+  # Main Meter
+  # =========================================================
+  - name: PowerMeter_Main
+    host: 192.168.1.4
+    port: 502
+    unit_id: 30
+    address_mode: minus_400000
+    enabled: false
+    timeout: 1.5
+
+    registers:
+      - name: voltage_phase_avg
+        address: 403036
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: current_phase_a
+        address: 403000
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: current_phase_b
+        address: 403002
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: current_phase_c
+        address: 403004
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true
+
+      - name: frequency
+        address: 403110
+        data_type: float32
+        scale: 1.0
+        function: holding
+        enabled: true

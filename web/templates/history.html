@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block header_controls %}
+<div class="controls-row">
+  <button id="stream-online-btn" class="control-btn active">Сейчас</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="history-root"
+     data-default-mode="{{ defaults.mode }}"
+     data-default-aggregation-min="{{ defaults.aggregation_min }}">
+
+  <section id="stream-cards" class="stream-cards-grid"></section>
+
+  <section class="history-controls-band">
+    <select id="history-year-select" class="control-select">
+      <option value="">Год</option>
+      {% for year in year_options %}
+      <option value="{{ year }}">{{ year }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="history-month-select" class="control-select">
+      <option value="">Месяц</option>
+      {% for month in month_options %}
+      <option value="{{ month }}">{{ "%02d"|format(month) }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="history-day-select" class="control-select">
+      <option value="">День</option>
+      {% for day in day_options %}
+      <option value="{{ day }}">{{ "%02d"|format(day) }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="history-aggregation-select" class="control-select">
+      {% for value in aggregation_options %}
+      <option value="{{ value }}" {% if value == defaults.aggregation_min %}selected{% endif %}>{{ value }} мин</option>
+      {% endfor %}
+    </select>
+
+    <button id="history-run-btn" class="control-btn">Запрос</button>
+  </section>
+
+  <section class="stream-chart-panel">
+    <div class="stream-chart-toolbar">
+      <div class="card-title">Данные счётчиков</div>
+      <div id="stream-chart-reference" class="metric-subtext">—</div>
+    </div>
+
+    <div class="stream-chart-stack">
+      <div class="stream-chart-row">
+        <div class="stream-axis-label">кВт</div>
+        <canvas id="stream-power-chart" class="stream-main-chart"></canvas>
+      </div>
+      <div class="stream-chart-row">
+        <div class="stream-axis-label">A</div>
+        <canvas id="stream-current-chart" class="stream-main-chart"></canvas>
+      </div>
+      <div class="stream-chart-row">
+        <div class="stream-axis-label">В</div>
+        <canvas id="stream-voltage-chart" class="stream-main-chart"></canvas>
+      </div>
+      <div class="stream-chart-row">
+        <div class="stream-axis-label">Гц</div>
+        <canvas id="stream-frequency-chart" class="stream-main-chart"></canvas>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="/static/js/history.js"></script>
+{% endblock %}

@@ -1,0 +1,26 @@
+writer:
+  db_path: data/energy.db
+
+  # Размер батча для одной записи в SQLite
+  batch_size: 64
+
+  # Как часто принудительно сбрасывать буфер в БД,
+  # даже если batch_size ещё не набран
+  flush_interval: 2.0
+
+  # Поведение при ошибках записи
+  max_retry_attempts: 3
+  retry_delay: 0.5
+
+  # Инициализация SQLite
+  sqlite:
+    journal_mode: WAL
+    synchronous: NORMAL
+    temp_store: MEMORY
+    foreign_keys: true
+
+  # Таблица сырых данных
+  raw_table_name: raw_data
+
+  # Если позже захочешь отключать автоматическое создание таблицы
+  auto_init_db: true
