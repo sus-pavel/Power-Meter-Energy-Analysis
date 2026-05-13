@@ -150,6 +150,12 @@ uvicorn web.app:app --host 0.0.0.0 --port 8000
 - `http://localhost:8000/ssa` — SSA-анализ;
 - `http://localhost:8000/docs` — Swagger UI.
 
+## Развёртывание на Raspberry Pi
+
+Для запуска на Raspberry Pi подготовлена отдельная инструкция: [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md).
+
+В ней описаны синхронизация проекта без runtime-данных, настройка Wi-Fi и SSH, установка Python, создание виртуального окружения, запуск pipeline через `systemd` и ручной запуск FastAPI-веб-интерфейса.
+
 ## Основные таблицы SQLite
 
 - `raw_data` — сырые измерения: `timestamp`, `device_id`, `metric`, `value`;
