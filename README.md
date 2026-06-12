@@ -253,23 +253,11 @@ References:
 
 Future research directions include NILM-based feedback for demand response, hysteresis-based ON/OFF state labeling, compact active-power feature extraction, collinearity-aware feature selection, probabilistic binary classifiers for load groups, threshold optimization through `Fβ`, probability post-processing, event-based metrics, and integration of NILM outputs as feedback for demand-response decision support.
 
-## Roadmap
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for short-term, medium-term, and long-term development plans.
-
 ## Citation
 
 If you use PowerMeter in research, publications, demonstrations, or derived software, please cite it as research software. A machine-readable citation file is provided in [CITATION.cff](CITATION.cff).
 
 Citation examples and future DOI guidance are available in [docs/CITATION.md](docs/CITATION.md).
-
-## GitHub Discoverability
-
-Recommended repository topics:
-
-`modbus-tcp`, `energy-monitoring`, `smart-meter`, `industrial-iot`, `demand-response`, `energy-flexibility`, `load-profiling`, `singular-spectrum-analysis`, `ssa`, `nilm`, `fastapi`, `sqlite`, `raspberry-pi`, `energy-analytics`
-
-See [docs/GITHUB_VISIBILITY.md](docs/GITHUB_VISIBILITY.md) for recommended GitHub settings, topics, release strategy, and visibility improvements.
 
 ## Contributing
 
