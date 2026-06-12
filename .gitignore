@@ -36,3 +36,7 @@ data/*
 logs/
 tmp/
 temp/
+docs/GITHUB_VISIBILITY.md
+docs/RELEASE_PLAN.md
+docs/REPOSITORY_REVIEW.md
+docs/ROADMAP.md

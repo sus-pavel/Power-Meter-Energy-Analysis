@@ -1,65 +1,85 @@
-# PowerMeter Energy Dashboard
+[English](README.md) | [Русский](README.ru.md)
 
-Система онлайн-мониторинга электропотребления для Modbus TCP счётчиков. Проект собирает измерения с устройств, сохраняет их в SQLite, строит агрегированные временные ряды и рассчитывает аналитические показатели DRPI и SSA. Поверх пайплайна есть FastAPI-веб-интерфейс с дашбордами текущего состояния, истории, DRPI и SSA-анализа.
+# PowerMeter
 
-## Возможности
+Open-source Modbus TCP energy monitoring platform with real-time dashboards, demand-response potential assessment, and SSA-based electrical load pattern analysis.
 
-- опрос Modbus TCP-устройств по YAML-конфигурации;
-- поддержка holding/input регистров и типов `float32`, `float32_swapped`, `uint16`, `int16`, `uint32`, `int32`;
-- запись сырых измерений в SQLite батчами;
-- агрегация рядов по окнам 5, 10, 15, 30 и 60 минут;
-- автоматическое хранение raw-данных за последние сутки;
-- расчёт DRPI (Индекса потенциала внедрения технологии управления спросом) по каждому счётчику и по суммарному потреблению `TOTAL`;
-- SSA-декомпозиция временных рядов с кластеризацией компонент через KMeans в амплитудо-частотном пространстве;
-- веб-интерфейс на FastAPI, Jinja2 и JavaScript-графиках;
-- Swagger/OpenAPI-документация API на `/docs`.
+PowerMeter collects measurements from Modbus TCP power meters, stores them locally in SQLite, builds aggregated time series, calculates the Demand Response Potential Index (DRPI), and provides FastAPI dashboards for operational monitoring and research analysis.
 
-## Архитектура
+## Why PowerMeter
 
-```text
-Modbus meters
-    |
-    v
-services/collector.py  ->  asyncio.Queue  ->  services/writer.py  ->  raw_data
-                                                              |
-                                                              v
-                                                   services/aggregator.py
-                                                              |
-                         +------------------------------------+------------------+
-                         v                                                       v
-               agg_5min / agg_10min / agg_15min / agg_30min / agg_1h       raw retention
-                         |
-                         v
-               services/drpi_service.py  ->  drpi_results
-                         |
-                         v
-                 web/app.py dashboards and API
+Industrial energy systems often need a practical bridge between field devices, local data storage, operational dashboards, and research-grade analytics. PowerMeter is designed for that bridge:
+
+- **Industrial energy monitoring:** collect active power, voltage, current, frequency, and related metrics from power meters.
+- **Modbus TCP integration:** configure meters and registers in YAML, including holding/input registers and multiple numeric data formats.
+- **Local-first architecture:** keep measurements and analytics in a local SQLite database, suitable for labs, pilot deployments, and Raspberry Pi installations.
+- **Demand response analytics:** estimate load flexibility using a rolling DRPI calculation over aggregated active-power profiles.
+- **Research applications:** analyze load patterns with Singular Spectrum Analysis (SSA), component reconstruction, W-correlation, and KMeans clustering in amplitude-frequency space.
+
+## Features
+
+- Asynchronous Modbus TCP collection from YAML-defined devices.
+- Support for `holding` and `input` registers.
+- Register decoding for `float32`, `float32_swapped`, `uint16`, `int16`, `uint32`, and `int32`.
+- Configurable Modbus address handling with `minus_400000`, `minus_400001`, and `raw` modes.
+- Batch writing of raw measurements into SQLite.
+- Aggregation windows of 5, 10, 15, 30, and 60 minutes.
+- Automatic raw-data retention policy, with the default set to the last 24 hours.
+- DRPI calculation for each meter and for aggregate `TOTAL` consumption.
+- SSA decomposition of active-power time series with component reconstruction and KMeans clustering.
+- FastAPI web application with Jinja2 templates and JavaScript charts.
+- Swagger/OpenAPI documentation at `/docs`.
+- Raspberry Pi deployment guide for edge installations.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Devices] --> B[Modbus TCP]
+    B --> C[Data Collection]
+    C --> D[SQLite]
+    D --> E[Analytics Layer]
+    E --> F[FastAPI]
+    F --> G[Web Dashboard]
 ```
 
-Основной запуск пайплайна находится в [`main.py`](main.py). Он поднимает collector, writer, aggregator и DRPI service в одном asyncio-приложении и корректно завершает их по сигналу остановки.
+Runtime services:
 
-## Структура проекта
+- `services/collector.py` polls configured Modbus TCP devices and puts normalized records into an `asyncio.Queue`.
+- `services/writer.py` validates, buffers, and writes raw records to SQLite in batches.
+- `services/aggregator.py` creates completed aggregation windows and stores mean values in aggregation tables.
+- `services/drpi_service.py` reads 5-minute active-power aggregates and writes rolling DRPI results.
+- `web/app.py` exposes dashboard pages and JSON API endpoints through FastAPI.
+
+The full production pipeline is started by [main.py](main.py). It runs collector, writer, aggregator, and DRPI service in one asyncio application and performs graceful shutdown on supported platforms.
+
+For a deeper component description, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Project Structure
 
 ```text
 .
-├── config/                 # YAML-конфигурация устройств и сервисов
-├── core/                   # DRPI и SSA вычислительные модули
-├── data/                   # локальная SQLite БД
-├── services/               # collector, writer, aggregator, drpi service
-├── web/                    # FastAPI-приложение, шаблоны, API и статика
-├── main.py                 # запуск полного production-пайплайна
-├── requirements.txt        # Python-зависимости
-└── README.md
+├── config/                 # YAML configuration for devices and services
+├── core/                   # DRPI and SSA computational modules
+├── data/                   # Local SQLite database location
+├── docs/                   # Documentation for users, researchers, and contributors
+├── services/               # Collector, writer, aggregator, and DRPI service
+├── web/                    # FastAPI application, templates, API routes, and static assets
+├── main.py                 # Full pipeline entry point
+├── requirements.txt        # Python dependencies
+└── README.md               # English project entry point
 ```
 
-## Требования
+## Requirements
 
-- Python 3.11 или новее;
-- доступ к Modbus TCP-счётчикам или шлюзу;
-- SQLite, используется стандартный модуль Python;
-- macOS/Linux/Windows для локального запуска, но сигнал-обработчики в `main.py` зависят от возможностей платформы.
+- Python 3.11 or newer.
+- Access to Modbus TCP meters or a Modbus TCP gateway.
+- SQLite, through Python's standard `sqlite3` module.
+- macOS, Linux, or Windows for local development. Signal handlers in `main.py` depend on platform support.
 
-## Установка
+## Quick Start
+
+Create a virtual environment and install dependencies:
 
 ```bash
 python -m venv .venv
@@ -67,7 +87,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Для Windows PowerShell:
+For Windows PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -75,17 +95,15 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Конфигурация устройств
-
-Создайте локальный файл устройств из примера:
+Create a local device configuration:
 
 ```bash
 cp config/devices.example.yaml config/devices.yaml
 ```
 
-Затем отредактируйте `config/devices.yaml`: укажите IP-адреса, порт, `unit_id`, режим адресации и список регистров.
+Edit `config/devices.yaml` with real meter IP addresses, ports, `unit_id` values, address mode, and registers.
 
-Минимальный пример устройства:
+Minimal device example:
 
 ```yaml
 devices:
@@ -105,131 +123,158 @@ devices:
         enabled: true
 ```
 
-Поддерживаемые режимы адресации:
+Supported address modes:
 
-- `minus_400000`: `403059 -> 3059`;
-- `minus_400001`: `403059 -> 3058`;
-- `raw`: адрес передаётся в pymodbus без преобразования.
+- `minus_400000`: converts `403059` to `3059`.
+- `minus_400001`: converts `403059` to `3058`.
+- `raw`: passes the address to `pymodbus` without conversion.
 
-Для первичной проверки регистров можно запустить диагностический скрипт:
+Verify Modbus register mapping before running the production pipeline:
 
 ```bash
 python -m services.debug_collector
 ```
 
-Он не пишет данные в БД, а помогает проверить offset, function code и порядок слов для `float32`.
+The diagnostic collector does not write to the database. It helps verify offset handling, function code, register count, and word order for `float32` values.
 
-## Конфигурация сервисов
-
-- `config/writer.yaml` — путь к SQLite, размер батча, интервал сброса буфера, PRAGMA-настройки и имя таблицы `raw_data`.
-- `config/aggregator.yaml` — интервалы агрегации, список метрик, политика хранения raw-данных.
-- `config/drpi.yaml` — источник 5-минутных агрегатов, режим расчёта, размер rolling-окна и веса DRPI.
-- `config/ssa.yaml` — параметры SSA и KMeans для аналитического слоя.
-
-По умолчанию база создаётся в `data/energy.db`.
-
-## Запуск
-
-Полный пайплайн сбора, записи, агрегации и расчёта DRPI:
+Start the full data pipeline:
 
 ```bash
 python main.py
 ```
 
-Веб-интерфейс запускается отдельным процессом:
+Start the web interface in a separate process:
 
 ```bash
 uvicorn web.app:app --host 0.0.0.0 --port 8000
 ```
 
-После запуска откройте:
+Open:
 
-- `http://localhost:8000/overview` — обзор энергосистемы;
-- `http://localhost:8000/history` — текущий поток данных и история измерений;
-- `http://localhost:8000/drpi` — DRPI-дашборд;
-- `http://localhost:8000/ssa` — SSA-анализ;
-- `http://localhost:8000/docs` — Swagger UI.
+- `http://localhost:8000/overview`
+- `http://localhost:8000/history`
+- `http://localhost:8000/drpi`
+- `http://localhost:8000/ssa`
+- `http://localhost:8000/docs`
 
-## Развёртывание на Raspberry Pi
+## Configuration
 
-Для запуска на Raspberry Pi подготовлена отдельная инструкция: [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md).
+Default runtime data is stored in `data/energy.db`.
 
-В ней описаны синхронизация проекта без runtime-данных, настройка Wi-Fi и SSH, установка Python, создание виртуального окружения, запуск pipeline через `systemd` и ручной запуск FastAPI-веб-интерфейса.
+- `config/devices.example.yaml` defines example Modbus TCP devices and registers.
+- `config/writer.yaml` controls SQLite path, batch size, flush interval, retry behavior, PRAGMA settings, and the `raw_data` table name.
+- `config/aggregator.yaml` controls aggregation intervals, metric selection, polling interval, and raw-data retention.
+- `config/drpi.yaml` controls the DRPI source table, source mode, rolling window, baseline quantile, flexibility target, and component weights.
+- `config/ssa.yaml` documents default SSA parameters for the analysis layer, including history length, window length, sampling frequency, component limits, and KMeans settings.
 
-## Основные таблицы SQLite
+## Demo Mode
 
-- `raw_data` — сырые измерения: `timestamp`, `device_id`, `metric`, `value`;
-- `agg_5min`, `agg_10min`, `agg_15min`, `agg_30min`, `agg_1h` — агрегированные средние значения;
-- `drpi_results` — рассчитанные значения `F1`, `F2`, `F3`, `R_raw`, `DRPI` по источникам.
+PowerMeter does not currently include an implemented demo workflow. A future demo mode should make the project evaluable without physical meters by combining simulated Modbus devices, synthetic load profiles, a pre-populated SQLite database, and example screenshots.
+
+See [docs/DEMO_MODE.md](docs/DEMO_MODE.md) for the proposed demo-mode architecture and implementation roadmap.
+
+## Raspberry Pi Deployment
+
+PowerMeter is intended to run locally at the edge, including on Raspberry Pi hardware. The deployment guide covers project synchronization without runtime data, Wi-Fi and SSH setup, Python installation, virtual environment creation, pipeline execution through `systemd`, and manual FastAPI startup.
+
+See [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md).
+
+## Database Tables
+
+- `raw_data`: raw measurements with `timestamp`, `device_id`, `metric`, `value`, and `created_at`.
+- `agg_5min`, `agg_10min`, `agg_15min`, `agg_30min`, `agg_1h`: aggregated mean values per window, device, and metric.
+- `drpi_results`: calculated `F1`, `F2`, `F3`, `R_raw`, and `DRPI` values by source.
 
 ## API
 
-Ключевые эндпоинты:
+Dashboard pages:
 
-- `GET /api/history/realtime`;
-- `GET /api/history/series`;
-- `GET /api/overview/summary`;
-- `GET /api/overview/power-meters`;
-- `GET /api/overview/drpi-heatmap`;
-- `GET /api/drpi/summary`;
-- `GET /api/drpi/history`;
-- `GET /api/drpi/components`;
-- `GET /api/ssa/analyze`.
+- `GET /overview`
+- `GET /history`
+- `GET /drpi`
+- `GET /ssa`
 
-Полная схема доступна через Swagger UI на `/docs`.
+JSON endpoints:
 
-## Научная основа
+- `GET /api/history/realtime`
+- `GET /api/history/series`
+- `GET /api/overview/summary`
+- `GET /api/overview/power-meters`
+- `GET /api/overview/drpi-heatmap`
+- `GET /api/drpi/summary`
+- `GET /api/drpi/history`
+- `GET /api/drpi/components`
+- `GET /api/ssa/analyze`
 
-Проект развивает результаты опубликованных исследований по управлению спросом, декомпозиции электрических нагрузок и NILM. В коде используется термин `DRPI` как индекс потенциала demand response; в ранней статье IEEE тот же показатель описан как Demand Response Flexibility Index, но в этом репозитории он обозначается именно как `DRPI`.
+Generated OpenAPI documentation is available through Swagger UI at `/docs`.
 
-- Zhukovskiy Y.L., Suslikov P.K. [Identification and classification of electrical loads in mining enterprises based on signal decomposition methods](https://pmi.spmi.ru/pmi/article/view/16670?setLocale=en_US). Journal of Mining Institute, 2025, Vol. 275, pp. 5-17. EDN: HPZAGK.
-- Suslikov P. A Cluster-Informed Demand Response Flexibility Index for Reconstructed Load Patterns. IEEE EDM 2026. DOI и страница IEEE Xplore ожидаются после публикации материалов конференции.
-- Zhukovskiy Y., Suslikov P., Rasputin D. [NILM-Based Feedback for Demand Response: A Reproducible Binary State-Detection Algorithm Using Active Power](https://www.mdpi.com/2673-4826/7/1/23). Electricity, 2026, 7(1), 23. DOI: [10.3390/electricity7010023](https://doi.org/10.3390/electricity7010023).
+Examples and parameter details are documented in [docs/API.md](docs/API.md).
 
-## DRPI
+## Demand Response Potential Index (DRPI)
 
-DRPI рассчитывается по rolling-окну активной мощности и предназначен для оценки потенциала участия нагрузки в demand response. В текущей конфигурации используется 5-минутная дискретизация и окно `288` точек, то есть 24 часа.
+DRPI is calculated over a rolling active-power window and estimates the potential for a load or group of loads to participate in demand response. The default production configuration uses 5-minute active-power aggregates and a window of `288` points, equal to 24 hours.
 
-Компоненты индекса:
+The current implementation calculates:
 
-- `F1` — доля гибкой нагрузки относительно суммарного потребления;
-- `F2` — концентрация гибкой нагрузки во времени;
-- `F3` — нормированная динамика изменения мощности;
-- `DRPI` — взвешенная сумма `F1`, `F2` и `F3`.
+- `F1`: flexible load share relative to total consumption.
+- `F2`: temporal concentration of flexible load.
+- `F3`: normalized power-change dynamics.
+- `DRPI`: weighted sum of `F1`, `F2`, and `F3`.
 
-Методическая логика опирается на исследование кластерно-информированного индекса гибкости для реконструированных профилей нагрузки. В нём исходные промышленные профили активной мощности декомпозируются через SSA, группируются в амплитудно-частотном пространстве, после чего DRPI считается как для исходных, так и для реконструированных профилей. Такой подход позволяет не только получить интегральную оценку гибкости, но и локализовать интервалы и структурные компоненты нагрузки, наиболее перспективные для управления спросом.
+Default weights are configured in `config/drpi.yaml` as `w1 = 0.5`, `w2 = 0.3`, and `w3 = 0.2`. The weights are normalized by the engine before use.
 
-Весовые коэффициенты задаются в `config/drpi.yaml`; базовая конфигурация использует распределение `w1 = 0.5`, `w2 = 0.3`, `w3 = 0.2`.
+Method details, equations, assumptions, and interpretation guidance are available in [docs/DRPI_METHOD.md](docs/DRPI_METHOD.md).
 
-## SSA
+## Singular Spectrum Analysis (SSA)
 
-SSA-анализ строится по агрегированному ряду активной мощности. Веб-страница `/ssa` позволяет выбрать счётчики, период, размер агрегации, длину окна, число компонент и число кластеров.
+SSA is used to decompose aggregated active-power time series into reconstructed components. The web page at `/ssa` lets users select meters, time range, aggregation level, SSA window size, component count, and cluster count.
 
-Расчёт включает:
+The analysis workflow includes:
 
-- построение траекторной матрицы;
-- SVD-декомпозицию;
-- восстановление элементарных компонент;
-- расчёт вклада компонент и W-correlation;
-- кластеризацию компонент по доминирующей частоте и амплитуде.
+- trajectory matrix construction;
+- singular value decomposition;
+- elementary component reconstruction;
+- component contribution and W-correlation calculation;
+- component clustering by dominant frequency and amplitude.
 
-SSA-блок повторяет методологию статьи в Journal of Mining Institute: временной ряд потребления электроэнергии преобразуется в траекторную матрицу, раскладывается через SVD, восстанавливается в набор компонент, а затем компоненты кластеризуются по частоте и амплитуде. Это позволяет выделять трендовые, суточные, недельные и другие повторяющиеся паттерны нагрузки, применимые для типизации потребителей и расчёта квазидинамических режимов.
+Method details and practical usage guidance are available in [docs/SSA_METHOD.md](docs/SSA_METHOD.md).
 
 ![SSA graphical abstract, English](docs/images/ssa-graphical-abstract-en.png)
 
-![Графическая аннотация SSA, русский](docs/images/ssa-graphical-abstract-ru.png)
+## Scientific Background
 
-## Дальнейшие исследования
+PowerMeter builds on research in demand response, electrical load decomposition, and non-intrusive load monitoring (NILM). In the codebase, the term `DRPI` means Demand Response Potential Index. In earlier IEEE-related work, a related index was described as the Demand Response Flexibility Index; this repository consistently uses `DRPI`.
 
-Следующий исследовательский слой связан с интеграцией NILM-методов в контур управления спросом на электроэнергию. В статье Electricity (MDPI) предложен воспроизводимый алгоритм определения бинарных состояний групп нагрузок `ON/OFF` по агрегированному ряду активной мощности без прямых измерений состояния оборудования.
+References:
 
-Потенциальное развитие проекта:
+- Zhukovskiy Y.L., Suslikov P.K. [Identification and classification of electrical loads in mining enterprises based on signal decomposition methods](https://pmi.spmi.ru/pmi/article/view/16670?setLocale=en_US). Journal of Mining Institute, 2025, Vol. 275, pp. 5-17. EDN: HPZAGK.
+- Suslikov P. A Cluster-Informed Demand Response Flexibility Index for Reconstructed Load Patterns. IEEE EDM 2026. DOI and IEEE Xplore page expected after publication of the conference proceedings.
+- Zhukovskiy Y., Suslikov P., Rasputin D. [NILM-Based Feedback for Demand Response: A Reproducible Binary State-Detection Algorithm Using Active Power](https://www.mdpi.com/2673-4826/7/1/23). Electricity, 2026, 7(1), 23. DOI: [10.3390/electricity7010023](https://doi.org/10.3390/electricity7010023).
 
-- формирование hysteresis-based разметки состояний нагрузок с адаптивными порогами на основе медианных значений и MAD;
-- построение компактных признаков только по агрегированной активной мощности, чтобы метод мог работать при ограниченном составе измерений;
-- отбор информативных признаков после удаления сильно коллинеарных переменных и оценки вклада каждого из признаков;
-- обучение вероятностных бинарных классификаторов для отдельных групп нагрузок: LightGBM, Histogram-based Gradient Boosting, XGBoost и CatBoost;
-- оптимизация порога принятия решения через `Fβ`-меру, чтобы балансировать пропущенные события и ложные срабатывания;
-- постобработка вероятностей для сглаживания предсказаний и подавления случайных кратковременных переключений;
-- оценка качества не только по sample-wise метрикам, но и по event-based метрикам, где учитывается корректное обнаружение интервалов переключения с допустимым временным отклонением;
-- использование результатов NILM как обратной связи для системы управления спросом на электроэнергию: индекс показывает потенциал гибкости, а NILM уточняет, какие группы нагрузки фактически формируют этот потенциал.
+Future research directions include NILM-based feedback for demand response, hysteresis-based ON/OFF state labeling, compact active-power feature extraction, collinearity-aware feature selection, probabilistic binary classifiers for load groups, threshold optimization through `Fβ`, probability post-processing, event-based metrics, and integration of NILM outputs as feedback for demand-response decision support.
+
+## Roadmap
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for short-term, medium-term, and long-term development plans.
+
+## Citation
+
+If you use PowerMeter in research, publications, demonstrations, or derived software, please cite it as research software. A machine-readable citation file is provided in [CITATION.cff](CITATION.cff).
+
+Citation examples and future DOI guidance are available in [docs/CITATION.md](docs/CITATION.md).
+
+## GitHub Discoverability
+
+Recommended repository topics:
+
+`modbus-tcp`, `energy-monitoring`, `smart-meter`, `industrial-iot`, `demand-response`, `energy-flexibility`, `load-profiling`, `singular-spectrum-analysis`, `ssa`, `nilm`, `fastapi`, `sqlite`, `raspberry-pi`, `energy-analytics`
+
+See [docs/GITHUB_VISIBILITY.md](docs/GITHUB_VISIBILITY.md) for recommended GitHub settings, topics, release strategy, and visibility improvements.
+
+## Contributing
+
+Contributions are welcome, especially in documentation, tests, deployment examples, simulated/demo data, API ergonomics, and research validation. Please read [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) before opening issues or pull requests.
+
+## License
+
+PowerMeter is distributed under the MIT License. See [LICENSE](LICENSE).

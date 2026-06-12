@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use PowerMeter in research, publications, demonstrations, or derived software, please cite it as research software."
+type: software
+title: "PowerMeter: Open-source Modbus TCP energy monitoring platform"
+version: 0.1.0
+abstract: "PowerMeter is an open-source Modbus TCP energy monitoring platform with real-time dashboards, demand-response potential assessment, and SSA-based electrical load pattern analysis."
+authors:
+  - family-names: Suslikov
+    given-names: Pavel
+repository-code: "https://github.com/sus-pavel/PowerMeter"
+url: "https://github.com/sus-pavel/PowerMeter"
+license: MIT
+keywords:
+  - modbus-tcp
+  - energy-monitoring
+  - demand-response
+  - singular-spectrum-analysis
+  - industrial-iot
+  - fastapi
+  - sqlite
