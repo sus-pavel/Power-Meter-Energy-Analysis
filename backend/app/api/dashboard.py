@@ -40,8 +40,12 @@ def dashboard_summary(
     active_scan_jobs = conn.execute(
         "SELECT COUNT(*) FROM scan_jobs WHERE status IN ('pending', 'running')"
     ).fetchone()[0]
-    discovered_candidates = conn.execute(
-        "SELECT COUNT(*) FROM scan_results WHERE modbus_responding = 1"
+    discovered_candidates = conn.execute("SELECT COUNT(*) FROM discovered_candidates").fetchone()[0]
+    promoted_devices = conn.execute(
+        "SELECT COUNT(*) FROM discovered_candidates WHERE status = 'promoted'"
+    ).fetchone()[0]
+    pending_review = conn.execute(
+        "SELECT COUNT(*) FROM discovered_candidates WHERE status IN ('discovered', 'reviewed')"
     ).fetchone()[0]
     return {
         "devices": device_count,
@@ -49,6 +53,8 @@ def dashboard_summary(
         "users": user_count,
         "active_scan_jobs": active_scan_jobs,
         "discovered_candidates": discovered_candidates,
+        "promoted_devices": promoted_devices,
+        "pending_review": pending_review,
         "mode": settings.app_mode,
         "database": database_status(),
         "measurement_summary": _measurement_summary(),

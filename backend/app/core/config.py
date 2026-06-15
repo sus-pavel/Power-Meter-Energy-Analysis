@@ -24,6 +24,9 @@ class Settings:
     discovery_max_concurrent_hosts: int = 20
     discovery_candidate_unit_ids: tuple[int, ...] = (1, 2, 3, 10, 100, 247)
     discovery_max_hosts_per_scan: int = int(os.getenv("POWERMETER_DISCOVERY_MAX_HOSTS", "4096"))
+    probe_profiles_path: Path = BASE_DIR / "backend" / "app" / "config" / "probe_profiles.yaml"
+    register_probe_timeout_seconds: float = 1.0
+    register_probe_delay_seconds: float = 0.05
 
 
 settings = Settings()

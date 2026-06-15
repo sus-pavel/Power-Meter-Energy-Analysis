@@ -118,6 +118,36 @@ def init_db() -> None:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (job_id) REFERENCES scan_jobs(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS discovered_candidates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scan_result_id INTEGER NOT NULL,
+                ip_address TEXT NOT NULL,
+                port INTEGER NOT NULL DEFAULT 502,
+                unit_id INTEGER NOT NULL,
+                status TEXT NOT NULL CHECK (status IN ('discovered', 'reviewed', 'promoted', 'rejected')),
+                device_type_guess TEXT,
+                confidence_score REAL,
+                vendor_guess TEXT,
+                notes TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (scan_result_id) REFERENCES scan_results(id) ON DELETE CASCADE,
+                UNIQUE (scan_result_id, unit_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS candidate_probe_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                candidate_id INTEGER NOT NULL,
+                register_address INTEGER NOT NULL,
+                function_code TEXT NOT NULL,
+                data_type TEXT NOT NULL,
+                raw_value TEXT,
+                decoded_value REAL,
+                valid INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (candidate_id) REFERENCES discovered_candidates(id) ON DELETE CASCADE
+            );
             """
         )
 

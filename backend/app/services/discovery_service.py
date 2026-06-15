@@ -16,6 +16,7 @@ from backend.app.core.database import get_connection
 from backend.app.models.discovery import ScanJob, ScanResult
 from backend.app.schemas.discovery import ScanCreateRequest
 from backend.app.services.audit_service import write_audit_log
+from backend.app.services.candidate_service import create_candidates_from_scan_result
 
 
 RUNNING_STATUSES = {"pending", "running"}
@@ -181,7 +182,7 @@ def _increment_progress(conn: sqlite3.Connection, job_id: int, found: bool) -> N
 
 
 def _store_result(conn: sqlite3.Connection, job_id: int, outcome: HostScanOutcome) -> None:
-    conn.execute(
+    cursor = conn.execute(
         """
         INSERT INTO scan_results (
             job_id,
@@ -205,6 +206,14 @@ def _store_result(conn: sqlite3.Connection, job_id: int, outcome: HostScanOutcom
             json.dumps(outcome.candidate_unit_ids),
         ),
     )
+    if outcome.modbus_responding:
+        create_candidates_from_scan_result(
+            conn,
+            scan_result_id=cursor.lastrowid,
+            ip_address=outcome.ip_address,
+            port=settings.discovery_port,
+            unit_ids=outcome.candidate_unit_ids,
+        )
 
 
 async def _tcp_port_open(ip_address: str) -> bool:
