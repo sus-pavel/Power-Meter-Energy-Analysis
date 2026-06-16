@@ -13,6 +13,7 @@ import { DiscoveryJobDetailsPage } from "../pages/DiscoveryJobDetailsPage";
 import { DiscoveryPage } from "../pages/DiscoveryPage";
 import { ForbiddenPage, NotFoundPage, ServerErrorPage, UnauthorizedPage } from "../pages/ErrorPages";
 import { LoginPage } from "../pages/LoginPage";
+import { OperationsPage } from "../pages/OperationsPage";
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth();
@@ -35,6 +36,7 @@ export function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/operations" element={<OperationsPage />} />
         <Route path="/devices" element={<DevicesPage />} />
         <Route path="/devices/:deviceId" element={<DeviceDetailsPage />} />
         <Route path="/discovery" element={<DiscoveryPage />} />

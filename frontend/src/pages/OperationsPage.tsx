@@ -8,26 +8,26 @@ import { PageHeader } from "../components/PageHeader";
 import { RecentActivityList } from "../components/RecentActivityList";
 import { useOperationalDevices, useOperationsEvents, useOperationsStatus, useRecentMeasurements } from "../hooks/useOperations";
 
-export function DashboardPage() {
-  const status = useOperationsStatus(10000);
-  const devices = useOperationalDevices(10000);
-  const measurements = useRecentMeasurements(10000);
-  const events = useOperationsEvents(10000);
+export function OperationsPage() {
+  const status = useOperationsStatus(5000);
+  const devices = useOperationalDevices(5000);
+  const measurements = useRecentMeasurements(5000);
+  const events = useOperationsEvents(5000);
   const loading = status.isLoading || devices.isLoading || measurements.isLoading || events.isLoading;
   const failed = status.isError || devices.isError || measurements.isError || events.isError;
 
   return (
     <>
-      <PageHeader title="Dashboard" description="Operational visibility and polling readiness." />
+      <PageHeader title="Operations" description="Device operational status, recent measurements, readiness, and events." />
       <div className="space-y-4 p-6">
-        {loading ? <LoadingState label="Loading operational dashboard" /> : null}
-        {failed ? <ErrorState title="Operations endpoint unavailable" message="Backend unavailable, unauthorized, or operations endpoint failed." /> : null}
+        {loading ? <LoadingState label="Loading operations" /> : null}
+        {failed ? <ErrorState title="Operations endpoint unavailable" message="Unable to load operational monitoring data." /> : null}
         {status.data ? <OperationalStatusCards status={status.data} /> : null}
         {status.data && devices.data && measurements.data ? <AttentionPanel status={status.data} devices={devices.data} measurements={measurements.data} /> : null}
         {devices.data ? (
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Device Status</h2>
-            <DeviceStatusTable devices={devices.data} />
+            <h2 className="text-sm font-semibold">Polling Readiness</h2>
+            <DeviceStatusTable devices={devices.data} showReadiness />
           </section>
         ) : null}
         {measurements.data ? <MeasurementAvailabilityCard measurements={measurements.data} /> : null}

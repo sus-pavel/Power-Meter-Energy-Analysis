@@ -2,6 +2,7 @@ import type { UserRole } from "../types/auth";
 
 const ROUTE_ROLES: Record<string, UserRole[]> = {
   "/dashboard": ["guest", "analyst", "chief_engineer", "admin"],
+  "/operations": ["analyst", "chief_engineer", "admin"],
   "/devices": ["analyst", "chief_engineer", "admin"],
   "/discovery": ["analyst", "chief_engineer", "admin"],
   "/candidates": ["analyst", "chief_engineer", "admin"],
