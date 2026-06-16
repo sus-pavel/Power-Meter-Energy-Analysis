@@ -1,13 +1,10 @@
 # PowerMeter
 
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20720447-1682C3)](https://doi.org/10.5281/zenodo.20720447)
+[![Release](https://img.shields.io/github/v/release/sus-pavel/PowerMeter?display_name=tag)](https://github.com/sus-pavel/PowerMeter/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)](#)
+
 [English](README.md) | [Русский](README.ru.md)
-
-**PowerMeter is a local-first desktop application for discovering, onboarding, and monitoring Modbus/TCP power meters with a bundled FastAPI backend and local SQLite storage.**
-
-![Release](https://img.shields.io/badge/release-v0.2.0--app-0f766e)
-![Desktop](https://img.shields.io/badge/desktop-macOS%20beta-334155)
-![Storage](https://img.shields.io/badge/storage-local%20SQLite-475569)
-![License](https://img.shields.io/badge/license-see%20LICENSE-64748b)
 
 PowerMeter v0.2.0-app is an early macOS desktop release. It is useful for lab validation, local pilot deployments, Modbus/TCP discovery workflows, and energy analytics experiments. It is not a cloud SaaS product, a full SCADA platform, or a production-hardened installer.
 
