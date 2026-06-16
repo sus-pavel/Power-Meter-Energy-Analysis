@@ -5,7 +5,11 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminPage } from "../pages/AdminPage";
 import { AnalyticsPage } from "../pages/AnalyticsPage";
 import { DashboardPage } from "../pages/DashboardPage";
+import { CandidateDetailsPage } from "../pages/CandidateDetailsPage";
+import { CandidatesPage } from "../pages/CandidatesPage";
+import { DeviceDetailsPage } from "../pages/DeviceDetailsPage";
 import { DevicesPage } from "../pages/DevicesPage";
+import { DiscoveryJobDetailsPage } from "../pages/DiscoveryJobDetailsPage";
 import { DiscoveryPage } from "../pages/DiscoveryPage";
 import { ForbiddenPage, NotFoundPage, ServerErrorPage, UnauthorizedPage } from "../pages/ErrorPages";
 import { LoginPage } from "../pages/LoginPage";
@@ -32,7 +36,11 @@ export function AppRoutes() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/devices" element={<DevicesPage />} />
+        <Route path="/devices/:deviceId" element={<DeviceDetailsPage />} />
         <Route path="/discovery" element={<DiscoveryPage />} />
+        <Route path="/discovery/jobs/:jobId" element={<DiscoveryJobDetailsPage />} />
+        <Route path="/candidates" element={<CandidatesPage />} />
+        <Route path="/candidates/:candidateId" element={<CandidateDetailsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Route>

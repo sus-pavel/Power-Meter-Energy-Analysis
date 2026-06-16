@@ -47,6 +47,7 @@ class CandidateProbeResponse(BaseModel):
 class CandidatePromoteRequest(BaseModel):
     device_name: str = Field(min_length=1, max_length=160)
     location: Optional[str] = None
+    description: Optional[str] = None
 
 
 class CandidatePromoteResponse(BaseModel):

@@ -163,7 +163,7 @@ def promote_candidate(
             candidate.ip_address,
             candidate.port,
             candidate.unit_id,
-            f"Promoted from discovered candidate #{candidate.id}",
+            payload.description or f"Promoted from discovered candidate #{candidate.id}",
             payload.location,
         ),
     )
