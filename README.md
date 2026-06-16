@@ -1,4 +1,4 @@
-# PowerMeter
+# Power Meter Energy Analysis
 
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20720447-1682C3)](https://doi.org/10.5281/zenodo.20720447)
 [![Release](https://img.shields.io/github/v/release/sus-pavel/PowerMeter?display_name=tag)](https://github.com/sus-pavel/PowerMeter/releases)
