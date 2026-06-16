@@ -4,6 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from backend.app.core.config import settings
+
 
 class DeviceBase(BaseModel):
     name: str = Field(min_length=1, max_length=160)
@@ -13,6 +15,7 @@ class DeviceBase(BaseModel):
     description: Optional[str] = None
     location: Optional[str] = None
     enabled: bool = True
+    poll_interval_sec: int = Field(default=settings.default_poll_interval_sec)
 
 
 class DeviceCreate(DeviceBase):
@@ -27,6 +30,7 @@ class DeviceUpdate(BaseModel):
     description: Optional[str] = None
     location: Optional[str] = None
     enabled: Optional[bool] = None
+    poll_interval_sec: Optional[int] = None
 
 
 class DeviceRead(DeviceBase):
@@ -82,3 +86,21 @@ class ProbeResponse(BaseModel):
     device_id: int
     status: str
     message: str
+
+
+class DeviceStatusRead(BaseModel):
+    status: str
+    last_success_at: Optional[str]
+    last_error_at: Optional[str]
+    last_error_message: Optional[str]
+
+
+class MeasurementRead(BaseModel):
+    id: int
+    device_id: int
+    register_id: int
+    timestamp: float
+    metric: str
+    value: float
+    unit: Optional[str]
+    created_at: str

@@ -23,6 +23,7 @@ PERMISSIONS_BY_ROLE: dict[str, set[str]] = {
         "view_analytics",
         "export_data",
         "manage_settings",
+        "manage_polling",
     },
     Role.CHIEF_ENGINEER: {
         "manage_devices",
@@ -36,6 +37,7 @@ PERMISSIONS_BY_ROLE: dict[str, set[str]] = {
         "view_candidates",
         "view_analytics",
         "export_data",
+        "manage_polling",
     },
     Role.ANALYST: {
         "view_dashboard",

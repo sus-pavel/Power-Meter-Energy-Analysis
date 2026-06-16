@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from backend.app.api.deps import CurrentUser, Database, require_permission
 from backend.app.core.permissions import Role
@@ -11,7 +11,9 @@ from backend.app.schemas.device import (
     DeviceCreate,
     DeviceGuestRead,
     DeviceRead,
+    DeviceStatusRead,
     DeviceUpdate,
+    MeasurementRead,
     ProbeResponse,
     RegisterCreate,
     RegisterRead,
@@ -94,6 +96,62 @@ def list_registers(device_id: int, conn: Database, _: CurrentUser) -> list[Regis
     if device_service.get_device(conn, device_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
     return [RegisterRead(**register.__dict__) for register in device_service.list_registers(conn, device_id)]
+
+
+@router.get("/{device_id}/status", response_model=DeviceStatusRead)
+def get_device_status(device_id: int, conn: Database, _: CurrentUser) -> DeviceStatusRead:
+    device = device_service.get_device(conn, device_id)
+    if device is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    row = conn.execute(
+        """
+        SELECT status, last_success_at, last_error_at, last_error_message
+        FROM device_status
+        WHERE device_id = ?
+        """,
+        (device_id,),
+    ).fetchone()
+    if row is None:
+        return DeviceStatusRead(
+            status="disabled" if not device.enabled else "unknown",
+            last_success_at=None,
+            last_error_at=None,
+            last_error_message=None,
+        )
+    return DeviceStatusRead(**dict(row))
+
+
+@router.get("/{device_id}/measurements", response_model=list[MeasurementRead])
+def get_device_measurements(
+    device_id: int,
+    conn: Database,
+    _: CurrentUser,
+    from_ts: Optional[float] = Query(default=None, alias="from"),
+    to_ts: Optional[float] = Query(default=None, alias="to"),
+    limit: int = Query(default=200, ge=1, le=2000),
+) -> list[MeasurementRead]:
+    if device_service.get_device(conn, device_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    clauses = ["device_id = ?"]
+    params: list[Any] = [device_id]
+    if from_ts is not None:
+        clauses.append("timestamp >= ?")
+        params.append(from_ts)
+    if to_ts is not None:
+        clauses.append("timestamp <= ?")
+        params.append(to_ts)
+    params.append(limit)
+    rows = conn.execute(
+        f"""
+        SELECT id, device_id, register_id, timestamp, metric, value, unit, created_at
+        FROM measurements_raw
+        WHERE {' AND '.join(clauses)}
+        ORDER BY timestamp DESC, id DESC
+        LIMIT ?
+        """,
+        params,
+    ).fetchall()
+    return [MeasurementRead(**dict(row)) for row in rows]
 
 
 @router.post("/{device_id}/registers", response_model=RegisterRead, status_code=status.HTTP_201_CREATED)

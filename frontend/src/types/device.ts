@@ -7,6 +7,7 @@ export interface Device {
   description: string | null;
   location: string | null;
   enabled: boolean;
+  poll_interval_sec: number;
   created_at: string;
   updated_at: string;
 }
@@ -16,6 +17,7 @@ export interface DeviceUpdatePayload {
   description?: string | null;
   location?: string | null;
   enabled?: boolean;
+  poll_interval_sec?: number;
 }
 
 export interface RegisterMapEntry {
@@ -42,4 +44,22 @@ export interface RegisterPayload {
   unit?: string | null;
   description?: string | null;
   enabled: boolean;
+}
+
+export interface DeviceStatus {
+  status: "online" | "offline" | "timeout" | "error" | "disabled" | "unknown";
+  last_success_at: string | null;
+  last_error_at: string | null;
+  last_error_message: string | null;
+}
+
+export interface DeviceMeasurement {
+  id: number;
+  device_id: number;
+  register_id: number;
+  timestamp: number;
+  metric: string;
+  value: number;
+  unit: string | null;
+  created_at: string;
 }

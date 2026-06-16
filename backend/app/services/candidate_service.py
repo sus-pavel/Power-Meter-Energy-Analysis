@@ -155,8 +155,8 @@ def promote_candidate(
 ) -> tuple[int, int]:
     cursor = conn.execute(
         """
-        INSERT INTO devices (name, host, port, unit_id, description, location, enabled)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
+        INSERT INTO devices (name, host, port, unit_id, description, location, enabled, poll_interval_sec)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 30)
         """,
         (
             payload.device_name,

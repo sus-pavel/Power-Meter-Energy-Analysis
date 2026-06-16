@@ -2,8 +2,19 @@ from __future__ import annotations
 
 import sqlite3
 
+from fastapi import HTTPException, status
+
+from backend.app.core.config import settings
 from backend.app.models.device import Device, DeviceRegister
 from backend.app.schemas.device import DeviceCreate, DeviceUpdate, RegisterCreate, RegisterUpdate
+
+
+def validate_poll_interval(value: int) -> None:
+    if value not in settings.allowed_poll_intervals_sec:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"poll_interval_sec must be one of {list(settings.allowed_poll_intervals_sec)}",
+        )
 
 
 def row_to_device(row: sqlite3.Row) -> Device:
@@ -16,6 +27,7 @@ def row_to_device(row: sqlite3.Row) -> Device:
         description=row["description"],
         location=row["location"],
         enabled=bool(row["enabled"]),
+        poll_interval_sec=row["poll_interval_sec"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -49,10 +61,11 @@ def get_device(conn: sqlite3.Connection, device_id: int) -> Device | None:
 
 
 def create_device(conn: sqlite3.Connection, payload: DeviceCreate) -> Device:
+    validate_poll_interval(payload.poll_interval_sec)
     cursor = conn.execute(
         """
-        INSERT INTO devices (name, host, port, unit_id, description, location, enabled)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO devices (name, host, port, unit_id, description, location, enabled, poll_interval_sec)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             payload.name,
@@ -62,6 +75,7 @@ def create_device(conn: sqlite3.Connection, payload: DeviceCreate) -> Device:
             payload.description,
             payload.location,
             int(payload.enabled),
+            payload.poll_interval_sec,
         ),
     )
     return get_device(conn, cursor.lastrowid)
@@ -74,6 +88,8 @@ def update_device(conn: sqlite3.Connection, device_id: int, payload: DeviceUpdat
     values = payload.model_dump(exclude_unset=True)
     if "enabled" in values and values["enabled"] is not None:
         values["enabled"] = int(values["enabled"])
+    if "poll_interval_sec" in values and values["poll_interval_sec"] is not None:
+        validate_poll_interval(values["poll_interval_sec"])
     if not values:
         return existing
     assignments = ", ".join(f"{field} = ?" for field in values)

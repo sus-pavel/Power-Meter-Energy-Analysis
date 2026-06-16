@@ -1,4 +1,4 @@
-export type OperationalDeviceStatus = "online" | "offline" | "unknown" | "disabled" | "error";
+export type OperationalDeviceStatus = "online" | "offline" | "unknown" | "disabled" | "error" | "timeout";
 export type PollingReadiness = "ready" | "no_registers" | "disabled" | "unknown";
 
 export interface OperationsStatus {
@@ -11,6 +11,8 @@ export interface OperationsStatus {
   pending_candidates: number;
   recent_measurements_available: boolean;
   last_measurement_at: string | null;
+  polling_running: boolean;
+  measurements_last_hour: number;
 }
 
 export interface OperationalDevice {

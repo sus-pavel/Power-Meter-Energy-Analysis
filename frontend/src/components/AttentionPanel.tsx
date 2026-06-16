@@ -9,6 +9,7 @@ interface AttentionPanelProps {
 export function AttentionPanel({ status, devices, measurements }: AttentionPanelProps) {
   const issues = [
     ...devices.filter((device) => device.status === "offline").map((device) => `Device offline: ${device.name}`),
+    ...devices.filter((device) => device.status === "timeout").map((device) => `Device timeout: ${device.name}`),
     ...devices.filter((device) => device.status === "error").map((device) => `Device error: ${device.name}`),
     ...devices.filter((device) => device.enabled && device.registers_enabled === 0).map((device) => `No enabled registers: ${device.name}`),
     ...(status.pending_candidates > 0 ? [`${status.pending_candidates} candidates pending review`] : []),

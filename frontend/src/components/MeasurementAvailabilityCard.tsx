@@ -11,7 +11,7 @@ export function MeasurementAvailabilityCard({ measurements }: { measurements: Re
           <div><dt className="text-muted-foreground">Total power, kW</dt><dd className="font-medium">{measurements.total_power_kw ?? "-"}</dd></div>
         </dl>
       ) : (
-        <p className="mt-2 text-sm text-muted-foreground">{measurements.message ?? "No measurement data available yet. Configure polling in a later stage."}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{measurements.message ?? "No measurement data available yet. Start polling after devices and registers are configured."}</p>
       )}
     </section>
   );

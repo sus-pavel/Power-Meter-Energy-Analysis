@@ -1,5 +1,12 @@
 import { apiClient } from "./client";
-import type { Device, DeviceUpdatePayload, RegisterMapEntry, RegisterPayload } from "../types/device";
+import type {
+  Device,
+  DeviceMeasurement,
+  DeviceStatus,
+  DeviceUpdatePayload,
+  RegisterMapEntry,
+  RegisterPayload
+} from "../types/device";
 
 export async function getDevices(): Promise<Device[]> {
   const response = await apiClient.get<Device[]>("/devices");
@@ -22,6 +29,18 @@ export async function deleteDevice(deviceId: number): Promise<void> {
 
 export async function getDeviceRegisters(deviceId: number): Promise<RegisterMapEntry[]> {
   const response = await apiClient.get<RegisterMapEntry[]>(`/devices/${deviceId}/registers`);
+  return response.data;
+}
+
+export async function getDeviceStatus(deviceId: number): Promise<DeviceStatus> {
+  const response = await apiClient.get<DeviceStatus>(`/devices/${deviceId}/status`);
+  return response.data;
+}
+
+export async function getDeviceMeasurements(deviceId: number, limit = 50): Promise<DeviceMeasurement[]> {
+  const response = await apiClient.get<DeviceMeasurement[]>(`/devices/${deviceId}/measurements`, {
+    params: { limit }
+  });
   return response.data;
 }
 

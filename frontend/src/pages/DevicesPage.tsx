@@ -9,11 +9,13 @@ import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { PageHeader } from "../components/PageHeader";
 import { useDevices } from "../hooks/useDevices";
+import { useOperationalDevices } from "../hooks/useOperations";
 import { usePermissions } from "../hooks/usePermissions";
 import type { Device } from "../types/device";
 
 export function DevicesPage() {
   const { data, isLoading, isError } = useDevices();
+  const operations = useOperationalDevices(5000);
   const { canManageLifecycle } = usePermissions();
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<Device | null>(null);
@@ -36,7 +38,14 @@ export function DevicesPage() {
         {isLoading ? <LoadingState label="Loading devices" /> : null}
         {isError ? <ErrorState message="Devices could not be loaded." /> : null}
         {data && data.length === 0 ? <EmptyState title="No managed devices" description="Promote a candidate from discovery to create a device." /> : null}
-        {data && data.length > 0 ? <DeviceTable devices={data} canManage={canManageLifecycle} onDelete={setDeleteTarget} /> : null}
+        {data && data.length > 0 ? (
+          <DeviceTable
+            devices={data}
+            operationsByDeviceId={new Map((operations.data ?? []).map((device) => [device.id, device]))}
+            canManage={canManageLifecycle}
+            onDelete={setDeleteTarget}
+          />
+        ) : null}
       </div>
       <ConfirmDialog
         open={Boolean(deleteTarget)}

@@ -13,6 +13,7 @@ class Device:
     description: str | None
     location: str | None
     enabled: bool
+    poll_interval_sec: int
     created_at: str
     updated_at: str
 

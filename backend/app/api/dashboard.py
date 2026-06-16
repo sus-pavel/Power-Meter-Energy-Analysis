@@ -14,17 +14,20 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 def _measurement_summary() -> dict[str, Any]:
-    if not settings.prototype_database_path.exists():
-        return {"available": False, "message": "No prototype measurement database found."}
     try:
-        with sqlite3.connect(settings.prototype_database_path) as conn:
-            summaries: dict[str, Any] = {"available": False, "tables": {}}
-            for table_name in ("raw_data", "agg_5min", "agg_30min", "drpi_results"):
-                if table_exists(conn, table_name):
-                    count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
-                    summaries["available"] = True
-                    summaries["tables"][table_name] = {"rows": count}
-            return summaries
+        summaries: dict[str, Any] = {"available": False, "tables": {}}
+        for path in (settings.database_path, settings.prototype_database_path):
+            if not path.exists():
+                continue
+            with sqlite3.connect(path) as conn:
+                for table_name in ("measurements_raw", "raw_data", "agg_5min", "agg_30min", "drpi_results"):
+                    if table_exists(conn, table_name):
+                        count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+                        summaries["available"] = True
+                        summaries["tables"][table_name] = {"rows": count}
+        if not summaries["available"]:
+            summaries["message"] = "No measurement tables found."
+        return summaries
     except sqlite3.Error:
         return {"available": False, "message": "Measurement database could not be read."}
 

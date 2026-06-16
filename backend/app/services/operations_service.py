@@ -7,6 +7,7 @@ from typing import Any
 
 from backend.app.core.config import settings
 from backend.app.core.database import table_exists
+from backend.app.polling.scheduler import polling_scheduler
 
 
 ONLINE_WINDOW_SECONDS = 300
@@ -31,7 +32,7 @@ def _measurement_db() -> sqlite3.Connection | None:
         conn = _connect_if_exists(path)
         if conn is None:
             continue
-        if table_exists(conn, "raw_data"):
+        if table_exists(conn, "measurements_raw") or table_exists(conn, "raw_data"):
             return conn
         conn.close()
     return None
@@ -45,7 +46,8 @@ def recent_measurements_summary() -> dict[str, Any]:
             "message": "Measurement tables are not available in the application database yet.",
         }
     try:
-        latest_ts = conn.execute("SELECT MAX(timestamp) FROM raw_data").fetchone()[0]
+        table_name = "measurements_raw" if table_exists(conn, "measurements_raw") else "raw_data"
+        latest_ts = conn.execute(f"SELECT MAX(timestamp) FROM {table_name}").fetchone()[0]
         if latest_ts is None:
             return {
                 "available": False,
@@ -53,23 +55,25 @@ def recent_measurements_summary() -> dict[str, Any]:
             }
         one_hour_ago = float(latest_ts) - 3600
         total_points = conn.execute(
-            "SELECT COUNT(*) FROM raw_data WHERE timestamp >= ?",
+            f"SELECT COUNT(*) FROM {table_name} WHERE timestamp >= ?",
             (one_hour_ago,),
         ).fetchone()[0]
+        power_metric = "active_power_total" if table_name == "measurements_raw" else "active_power_avg"
         rows = conn.execute(
-            """
+            f"""
             SELECT r.device_id, r.value
-            FROM raw_data r
+            FROM {table_name} r
             JOIN (
                 SELECT device_id, MAX(timestamp) AS latest_ts
-                FROM raw_data
-                WHERE metric = 'active_power_avg'
+                FROM {table_name}
+                WHERE metric = ?
                 GROUP BY device_id
             ) latest
               ON latest.device_id = r.device_id
              AND latest.latest_ts = r.timestamp
-            WHERE r.metric = 'active_power_avg'
-            """
+            WHERE r.metric = ?
+            """,
+            (power_metric, power_metric),
         ).fetchall()
         total_power = round(sum(float(row["value"]) for row in rows), 3) if rows else None
         return {
@@ -87,12 +91,13 @@ def _last_seen_by_device() -> dict[str, dict[str, Any]]:
     if conn is None:
         return {}
     try:
+        table_name = "measurements_raw" if table_exists(conn, "measurements_raw") else "raw_data"
         rows = conn.execute(
-            """
+            f"""
             SELECT device_id, MAX(timestamp) AS last_seen_at
-            FROM raw_data
+            FROM {table_name}
             GROUP BY device_id
-            """
+            """,
         ).fetchall()
         return {
             str(row["device_id"]): {
@@ -111,9 +116,14 @@ def operational_devices(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT d.*,
+               ds.status AS status_row,
+               ds.last_success_at,
+               ds.last_error_at,
+               ds.last_error_message,
                COALESCE(SUM(CASE WHEN r.enabled = 1 THEN 1 ELSE 0 END), 0) AS registers_enabled
         FROM devices d
         LEFT JOIN device_registers r ON r.device_id = d.id
+        LEFT JOIN device_status ds ON ds.device_id = d.id
         GROUP BY d.id
         ORDER BY d.name
         """
@@ -126,6 +136,8 @@ def operational_devices(conn: sqlite3.Connection) -> list[dict[str, Any]]:
         registers_enabled = int(row["registers_enabled"] or 0)
         if not enabled:
             status = "disabled"
+        elif row["status_row"]:
+            status = row["status_row"]
         elif seen is None:
             status = "unknown"
         elif now_ts - seen["timestamp"] <= ONLINE_WINDOW_SECONDS:
@@ -147,8 +159,8 @@ def operational_devices(conn: sqlite3.Connection) -> list[dict[str, Any]]:
                 "unit_id": row["unit_id"],
                 "enabled": enabled,
                 "status": status,
-                "last_seen_at": seen["iso"] if seen else None,
-                "last_error": None,
+                "last_seen_at": row["last_success_at"] or (seen["iso"] if seen else None),
+                "last_error": row["last_error_message"],
                 "registers_enabled": registers_enabled,
                 "polling_readiness": readiness,
             }
@@ -175,6 +187,8 @@ def operations_status(conn: sqlite3.Connection) -> dict[str, Any]:
         "pending_candidates": pending_candidates,
         "recent_measurements_available": bool(measurement.get("available")),
         "last_measurement_at": measurement.get("last_measurement_at"),
+        "polling_running": polling_scheduler.running,
+        "measurements_last_hour": measurement.get("total_points_last_hour", 0) if measurement.get("available") else 0,
     }
 
 

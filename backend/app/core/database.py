@@ -58,6 +58,7 @@ def init_db() -> None:
                 description TEXT,
                 location TEXT,
                 enabled INTEGER NOT NULL DEFAULT 1,
+                poll_interval_sec INTEGER NOT NULL DEFAULT 30,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -148,8 +149,53 @@ def init_db() -> None:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (candidate_id) REFERENCES discovered_candidates(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS polling_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id INTEGER NOT NULL UNIQUE,
+                status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'paused', 'failed', 'disabled')),
+                poll_interval_sec INTEGER NOT NULL DEFAULT 30,
+                last_run_at TEXT,
+                next_run_at REAL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS measurements_raw (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id INTEGER NOT NULL,
+                register_id INTEGER NOT NULL,
+                timestamp REAL NOT NULL,
+                metric TEXT NOT NULL,
+                value REAL NOT NULL,
+                unit TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE,
+                FOREIGN KEY (register_id) REFERENCES device_registers(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_measurements_raw_device_ts
+            ON measurements_raw (device_id, timestamp);
+
+            CREATE TABLE IF NOT EXISTS device_status (
+                device_id INTEGER PRIMARY KEY,
+                status TEXT NOT NULL CHECK (status IN ('online', 'offline', 'timeout', 'error', 'disabled')),
+                last_success_at TEXT,
+                last_error_at TEXT,
+                last_error_message TEXT,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+            );
             """
         )
+
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(devices)").fetchall()
+        }
+        if "poll_interval_sec" not in columns:
+            conn.execute("ALTER TABLE devices ADD COLUMN poll_interval_sec INTEGER NOT NULL DEFAULT 30")
 
         conn.execute(
             """

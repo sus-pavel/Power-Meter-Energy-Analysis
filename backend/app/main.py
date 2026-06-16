@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from backend.app.api import auth, candidates, dashboard, devices, discovery, health, operations, users
+from backend.app.api import auth, candidates, dashboard, devices, discovery, health, operations, polling, users
 from backend.app.core.config import settings
 from backend.app.core.database import init_db
 
 
 app = FastAPI(
     title="PowerMeter App Backend",
-    version="0.3.3-operational-dashboard",
+    version="0.4.0-polling-engine",
     description="Local-first application backend for PowerMeter.",
 )
 
@@ -31,4 +31,5 @@ app.include_router(devices.router)
 app.include_router(discovery.router)
 app.include_router(candidates.router)
 app.include_router(operations.router)
+app.include_router(polling.router)
 app.include_router(dashboard.router)

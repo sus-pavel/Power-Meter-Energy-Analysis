@@ -12,8 +12,8 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 class Settings:
     app_name: str = "PowerMeter"
     app_mode: str = "app"
-    database_path: Path = BASE_DIR / "data" / "powermeter_app.db"
-    prototype_database_path: Path = BASE_DIR / "data" / "energy.db"
+    database_path: Path = Path(os.getenv("POWERMETER_APP_DB", BASE_DIR / "data" / "powermeter_app.db"))
+    prototype_database_path: Path = Path(os.getenv("POWERMETER_PROTOTYPE_DB", BASE_DIR / "data" / "energy.db"))
     jwt_secret: str = os.getenv("POWERMETER_JWT_SECRET", "change-this-local-secret")
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = int(os.getenv("POWERMETER_TOKEN_MINUTES", "1440"))
@@ -27,6 +27,11 @@ class Settings:
     probe_profiles_path: Path = BASE_DIR / "backend" / "app" / "config" / "probe_profiles.yaml"
     register_probe_timeout_seconds: float = 1.0
     register_probe_delay_seconds: float = 0.05
+    default_poll_interval_sec: int = 30
+    allowed_poll_intervals_sec: tuple[int, ...] = (10, 30, 60, 300, 600)
+    polling_max_parallel_devices: int = 20
+    polling_loop_interval_sec: float = 1.0
+    polling_modbus_timeout_sec: float = 2.0
 
 
 settings = Settings()
