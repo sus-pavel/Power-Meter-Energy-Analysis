@@ -60,6 +60,14 @@ def init_db() -> None:
                 location TEXT,
                 enabled INTEGER NOT NULL DEFAULT 1,
                 poll_interval_sec INTEGER NOT NULL DEFAULT 30,
+                vendor_name TEXT,
+                product_code TEXT,
+                product_name TEXT,
+                model_name TEXT,
+                firmware_revision TEXT,
+                device_identification_raw TEXT,
+                probe_profile_id TEXT,
+                probe_profile_source TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -135,6 +143,19 @@ def init_db() -> None:
                 device_type_guess TEXT,
                 confidence_score REAL,
                 vendor_guess TEXT,
+                vendor_name TEXT,
+                product_code TEXT,
+                product_name TEXT,
+                model_name TEXT,
+                firmware_revision TEXT,
+                device_identification_raw TEXT,
+                vendor_identification_supported INTEGER NOT NULL DEFAULT 0,
+                vendor_identification_error TEXT,
+                probe_profile_id TEXT,
+                probe_profile_source TEXT,
+                probe_quality TEXT,
+                probe_status TEXT,
+                probe_summary_json TEXT,
                 notes TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -151,6 +172,20 @@ def init_db() -> None:
                 raw_value TEXT,
                 decoded_value REAL,
                 valid INTEGER NOT NULL DEFAULT 0,
+                metric TEXT,
+                scale REAL NOT NULL DEFAULT 1.0,
+                unit TEXT,
+                quality TEXT NOT NULL DEFAULT 'unknown',
+                status TEXT NOT NULL DEFAULT 'unknown',
+                source TEXT NOT NULL DEFAULT 'unknown',
+                tested_json TEXT NOT NULL DEFAULT '{}',
+                inferred_json TEXT NOT NULL DEFAULT '{}',
+                failure_reason TEXT,
+                exception_code INTEGER,
+                response_time_ms REAL,
+                validated_from_config INTEGER NOT NULL DEFAULT 0,
+                probe_profile_id TEXT,
+                probe_profile_source TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (candidate_id) REFERENCES discovered_candidates(id) ON DELETE CASCADE
             );
@@ -252,6 +287,19 @@ def init_db() -> None:
         }
         if "poll_interval_sec" not in columns:
             conn.execute("ALTER TABLE devices ADD COLUMN poll_interval_sec INTEGER NOT NULL DEFAULT 30")
+        device_columns_to_add = {
+            "vendor_name": "TEXT",
+            "product_code": "TEXT",
+            "product_name": "TEXT",
+            "model_name": "TEXT",
+            "firmware_revision": "TEXT",
+            "device_identification_raw": "TEXT",
+            "probe_profile_id": "TEXT",
+            "probe_profile_source": "TEXT",
+        }
+        for column_name, column_type in device_columns_to_add.items():
+            if column_name not in columns:
+                conn.execute(f"ALTER TABLE devices ADD COLUMN {column_name} {column_type}")
 
         scan_job_columns = {
             row["name"]
@@ -265,6 +313,53 @@ def init_db() -> None:
             conn.execute("ALTER TABLE scan_jobs ADD COLUMN timeout_seconds REAL")
         if "max_concurrent_hosts" not in scan_job_columns:
             conn.execute("ALTER TABLE scan_jobs ADD COLUMN max_concurrent_hosts INTEGER")
+
+        candidate_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(discovered_candidates)").fetchall()
+        }
+        candidate_columns_to_add = {
+            "vendor_name": "TEXT",
+            "product_code": "TEXT",
+            "product_name": "TEXT",
+            "model_name": "TEXT",
+            "firmware_revision": "TEXT",
+            "device_identification_raw": "TEXT",
+            "vendor_identification_supported": "INTEGER NOT NULL DEFAULT 0",
+            "vendor_identification_error": "TEXT",
+            "probe_profile_id": "TEXT",
+            "probe_profile_source": "TEXT",
+            "probe_quality": "TEXT",
+            "probe_status": "TEXT",
+            "probe_summary_json": "TEXT",
+        }
+        for column_name, column_type in candidate_columns_to_add.items():
+            if column_name not in candidate_columns:
+                conn.execute(f"ALTER TABLE discovered_candidates ADD COLUMN {column_name} {column_type}")
+
+        probe_result_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(candidate_probe_results)").fetchall()
+        }
+        probe_result_columns_to_add = {
+            "metric": "TEXT",
+            "scale": "REAL NOT NULL DEFAULT 1.0",
+            "unit": "TEXT",
+            "quality": "TEXT NOT NULL DEFAULT 'unknown'",
+            "status": "TEXT NOT NULL DEFAULT 'unknown'",
+            "source": "TEXT NOT NULL DEFAULT 'unknown'",
+            "tested_json": "TEXT NOT NULL DEFAULT '{}'",
+            "inferred_json": "TEXT NOT NULL DEFAULT '{}'",
+            "failure_reason": "TEXT",
+            "exception_code": "INTEGER",
+            "response_time_ms": "REAL",
+            "validated_from_config": "INTEGER NOT NULL DEFAULT 0",
+            "probe_profile_id": "TEXT",
+            "probe_profile_source": "TEXT",
+        }
+        for column_name, column_type in probe_result_columns_to_add.items():
+            if column_name not in probe_result_columns:
+                conn.execute(f"ALTER TABLE candidate_probe_results ADD COLUMN {column_name} {column_type}")
 
         conn.execute(
             """

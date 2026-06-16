@@ -14,8 +14,12 @@ export function CandidateDetailsCard({ candidate }: { candidate: CandidateDetail
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
         <div><dt className="text-muted-foreground">Type Guess</dt><dd className="font-medium">{candidate.device_type_guess ?? "unknown"}</dd></div>
         <div><dt className="text-muted-foreground">Confidence</dt><dd><ConfidenceBadge value={candidate.confidence_score} /></dd></div>
-        <div><dt className="text-muted-foreground">Vendor Guess</dt><dd className="font-medium">{candidate.vendor_guess ?? "unknown"}</dd></div>
+        <div><dt className="text-muted-foreground">Vendor</dt><dd className="font-medium">{candidate.vendor_name ?? candidate.vendor_guess ?? "unknown"}</dd></div>
         <div><dt className="text-muted-foreground">Scan Result</dt><dd className="font-medium">#{candidate.scan_result_id}</dd></div>
+        <div><dt className="text-muted-foreground">Product</dt><dd className="font-medium">{candidate.product_name ?? candidate.product_code ?? "-"}</dd></div>
+        <div><dt className="text-muted-foreground">Model</dt><dd className="font-medium">{candidate.model_name ?? "-"}</dd></div>
+        <div><dt className="text-muted-foreground">Firmware</dt><dd className="font-medium">{candidate.firmware_revision ?? "-"}</dd></div>
+        <div><dt className="text-muted-foreground">Profile Source</dt><dd className="font-medium">{candidate.probe_profile_source?.replace(/_/g, " ") ?? "unknown"}</dd></div>
       </dl>
     </div>
   );

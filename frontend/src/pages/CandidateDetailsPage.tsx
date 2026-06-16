@@ -15,6 +15,22 @@ import { useCandidate } from "../hooks/useCandidates";
 import { usePermissions } from "../hooks/usePermissions";
 import type { PromoteCandidatePayload } from "../types/candidate";
 
+function parseProbeSummary(value: string | null) {
+  if (!value) {
+    return null;
+  }
+  try {
+    return JSON.parse(value) as {
+      recommended_next_action?: string;
+      failed_checks?: Array<{ metric?: string | null; address?: number; status?: string | null; failure_reason?: string | null }>;
+      from_config?: { profile_id?: string; profile_source?: string; registers_configured?: number };
+      from_device_identification?: Record<string, string>;
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function CandidateDetailsPage() {
   const candidateId = Number(useParams().candidateId);
   const query = useCandidate(candidateId);
@@ -46,6 +62,7 @@ export function CandidateDetailsPage() {
   });
 
   const candidate = query.data;
+  const probeSummary = parseProbeSummary(candidate?.probe_summary_json ?? null);
 
   return (
     <>
@@ -58,10 +75,44 @@ export function CandidateDetailsPage() {
           <>
             <CandidateDetailsCard candidate={candidate} />
             <div className="grid gap-4 sm:grid-cols-3">
-              <StatusCard label="Device Type Guess" value={candidate.device_type_guess ?? "Unknown"} detail="Fingerprint result" />
-              <StatusCard label="Confidence Score" value={candidate.confidence_score === null ? "-" : `${Math.round(candidate.confidence_score * 100)}%`} detail="Heuristic confidence" />
-              <StatusCard label="Vendor Guess" value={candidate.vendor_guess ?? "unknown"} detail="Vendor-specific ID not enabled" />
+              <StatusCard label="Probe Status" value={(candidate.probe_status ?? "not probed").replace(/_/g, " ")} detail="Validation state" />
+              <StatusCard label="Profile Source" value={(candidate.probe_profile_source ?? "unknown").replace(/_/g, " ")} detail={candidate.probe_profile_id ?? "No profile selected"} />
+              <StatusCard
+                label="Vendor Identification"
+                value={candidate.vendor_identification_supported ? "Available" : "Unavailable"}
+                detail={candidate.vendor_identification_error ?? candidate.vendor_name ?? "FC43/14 not confirmed"}
+              />
             </div>
+            {candidate.probe_status ? (
+              <section className="rounded-md border border-border bg-card p-4 text-sm">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div>
+                    <p className="text-muted-foreground">Validation Status</p>
+                    <p className="font-medium">{candidate.probe_status.replace(/_/g, " ")}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Quality</p>
+                    <p className="font-medium">{candidate.probe_quality?.replace(/_/g, " ") ?? "unknown"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Recommended Next Action</p>
+                    <p className="font-medium">{probeSummary?.recommended_next_action ?? "Run probe or configure a register map."}</p>
+                  </div>
+                </div>
+                {probeSummary?.failed_checks?.length ? (
+                  <div className="mt-4">
+                    <p className="font-medium">Failed Checks</p>
+                    <ul className="mt-2 space-y-1 text-muted-foreground">
+                      {probeSummary.failed_checks.slice(0, 4).map((check, index) => (
+                        <li key={`${check.metric ?? "check"}-${index}`}>
+                          {(check.metric ?? `Register ${check.address ?? "-"}`)}: {(check.status ?? "failed").replace(/_/g, " ")}{check.failure_reason ? ` (${check.failure_reason})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
             {canManageLifecycle ? (
               <div className="flex flex-wrap gap-2">
                 <button disabled={probeMutation.isPending || candidate.status === "promoted" || candidate.status === "rejected"} className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-60" onClick={() => probeMutation.mutate()}>

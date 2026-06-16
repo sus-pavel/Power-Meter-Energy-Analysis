@@ -14,6 +14,14 @@ class Device:
     location: str | None
     enabled: bool
     poll_interval_sec: int
+    vendor_name: str | None
+    product_code: str | None
+    product_name: str | None
+    model_name: str | None
+    firmware_revision: str | None
+    device_identification_raw: str | None
+    probe_profile_id: str | None
+    probe_profile_source: str | None
     created_at: str
     updated_at: str
 

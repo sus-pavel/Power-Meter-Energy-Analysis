@@ -31,6 +31,17 @@ def _summary(candidate) -> CandidateSummary:
         device_type_guess=candidate.device_type_guess,
         confidence_score=candidate.confidence_score,
         vendor_guess=candidate.vendor_guess,
+        vendor_name=candidate.vendor_name,
+        product_code=candidate.product_code,
+        product_name=candidate.product_name,
+        model_name=candidate.model_name,
+        firmware_revision=candidate.firmware_revision,
+        vendor_identification_supported=candidate.vendor_identification_supported,
+        vendor_identification_error=candidate.vendor_identification_error,
+        probe_profile_id=candidate.probe_profile_id,
+        probe_profile_source=candidate.probe_profile_source,
+        probe_quality=candidate.probe_quality,
+        probe_status=candidate.probe_status,
         updated_at=candidate.updated_at,
     )
 
@@ -58,6 +69,8 @@ def get_candidate(
         scan_result_id=candidate.scan_result_id,
         notes=candidate.notes,
         created_at=candidate.created_at,
+        device_identification_raw=candidate.device_identification_raw,
+        probe_summary_json=candidate.probe_summary_json,
         probe_results=[result.__dict__ for result in probe_results],
     )
 
@@ -74,8 +87,12 @@ async def probe(
     if candidate.status in {"promoted", "rejected"}:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Candidate is closed")
 
-    raw_results = await probe_candidate(candidate)
-    probe_results = candidate_service.replace_probe_results(conn, candidate_id, raw_results)
+    probe_outcome = await probe_candidate(candidate, conn)
+    candidate_service.update_candidate_probe_metadata(conn, candidate_id, metadata=probe_outcome["metadata"])
+    probe_results = candidate_service.replace_probe_results(conn, candidate_id, probe_outcome["results"])
+    candidate = candidate_service.get_candidate(conn, candidate_id)
+    if candidate is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
     fingerprint = fingerprint_candidate(candidate, probe_results)
     candidate_service.update_candidate_fingerprint(
         conn,
@@ -94,14 +111,18 @@ async def probe(
             "valid_registers_found": sum(1 for result in probe_results if result.valid),
             "device_type_guess": fingerprint.device_type_guess,
             "confidence_score": fingerprint.confidence_score,
+            "probe_quality": candidate.probe_quality,
+            "probe_profile_source": candidate.probe_profile_source,
         },
     )
     return CandidateProbeResponse(
         candidate_id=candidate_id,
-        probe_status="completed",
+        probe_status=candidate.probe_status or "completed",
         valid_registers_found=sum(1 for result in probe_results if result.valid),
         device_type_guess=fingerprint.device_type_guess,
         confidence_score=fingerprint.confidence_score,
+        probe_quality=candidate.probe_quality or "unknown",
+        probe_profile_source=candidate.probe_profile_source,
     )
 
 

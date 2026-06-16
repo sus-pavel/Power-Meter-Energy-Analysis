@@ -14,6 +14,17 @@ class CandidateSummary(BaseModel):
     device_type_guess: Optional[str]
     confidence_score: Optional[float]
     vendor_guess: Optional[str]
+    vendor_name: Optional[str]
+    product_code: Optional[str]
+    product_name: Optional[str]
+    model_name: Optional[str]
+    firmware_revision: Optional[str]
+    vendor_identification_supported: bool
+    vendor_identification_error: Optional[str]
+    probe_profile_id: Optional[str]
+    probe_profile_source: Optional[str]
+    probe_quality: Optional[str]
+    probe_status: Optional[str]
     updated_at: str
 
 
@@ -26,6 +37,20 @@ class CandidateProbeResultRead(BaseModel):
     raw_value: Optional[str]
     decoded_value: Optional[float]
     valid: bool
+    metric: Optional[str]
+    scale: float
+    unit: Optional[str]
+    quality: str
+    status: str
+    source: str
+    tested_json: str
+    inferred_json: str
+    failure_reason: Optional[str]
+    exception_code: Optional[int]
+    response_time_ms: Optional[float]
+    validated_from_config: bool
+    probe_profile_id: Optional[str]
+    probe_profile_source: Optional[str]
     created_at: str
 
 
@@ -33,6 +58,8 @@ class CandidateDetails(CandidateSummary):
     scan_result_id: int
     notes: Optional[str]
     created_at: str
+    device_identification_raw: Optional[str]
+    probe_summary_json: Optional[str]
     probe_results: list[CandidateProbeResultRead]
 
 
@@ -42,6 +69,8 @@ class CandidateProbeResponse(BaseModel):
     valid_registers_found: int
     device_type_guess: str
     confidence_score: float
+    probe_quality: str
+    probe_profile_source: Optional[str]
 
 
 class CandidatePromoteRequest(BaseModel):

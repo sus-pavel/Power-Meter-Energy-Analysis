@@ -47,8 +47,10 @@ class Settings:
     discovery_default_timeout_seconds: float = 2.0
     discovery_real_network_max_concurrent_hosts: int = 5
     probe_profiles_path: Path = BASE_DIR / "backend" / "app" / "config" / "probe_profiles.yaml"
+    devices_config_path: Path = Path(os.getenv("POWERMETER_DEVICES_CONFIG", BASE_DIR / "config" / "devices.yaml"))
     register_probe_timeout_seconds: float = 1.0
     register_probe_delay_seconds: float = 0.05
+    register_probe_max_validation_registers: int = 4
     default_poll_interval_sec: int = 30
     allowed_poll_intervals_sec: tuple[int, ...] = (10, 30, 60, 300, 600)
     polling_max_parallel_devices: int = 20

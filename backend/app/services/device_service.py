@@ -28,6 +28,14 @@ def row_to_device(row: sqlite3.Row) -> Device:
         location=row["location"],
         enabled=bool(row["enabled"]),
         poll_interval_sec=row["poll_interval_sec"],
+        vendor_name=row["vendor_name"],
+        product_code=row["product_code"],
+        product_name=row["product_name"],
+        model_name=row["model_name"],
+        firmware_revision=row["firmware_revision"],
+        device_identification_raw=row["device_identification_raw"],
+        probe_profile_id=row["probe_profile_id"],
+        probe_profile_source=row["probe_profile_source"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -64,8 +72,25 @@ def create_device(conn: sqlite3.Connection, payload: DeviceCreate) -> Device:
     validate_poll_interval(payload.poll_interval_sec)
     cursor = conn.execute(
         """
-        INSERT INTO devices (name, host, port, unit_id, description, location, enabled, poll_interval_sec)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO devices (
+            name,
+            host,
+            port,
+            unit_id,
+            description,
+            location,
+            enabled,
+            poll_interval_sec,
+            vendor_name,
+            product_code,
+            product_name,
+            model_name,
+            firmware_revision,
+            device_identification_raw,
+            probe_profile_id,
+            probe_profile_source
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             payload.name,
@@ -76,6 +101,14 @@ def create_device(conn: sqlite3.Connection, payload: DeviceCreate) -> Device:
             payload.location,
             int(payload.enabled),
             payload.poll_interval_sec,
+            payload.vendor_name,
+            payload.product_code,
+            payload.product_name,
+            payload.model_name,
+            payload.firmware_revision,
+            payload.device_identification_raw,
+            payload.probe_profile_id,
+            payload.probe_profile_source,
         ),
     )
     return get_device(conn, cursor.lastrowid)

@@ -18,6 +18,19 @@ def row_to_candidate(row: sqlite3.Row) -> DiscoveredCandidate:
         device_type_guess=row["device_type_guess"],
         confidence_score=row["confidence_score"],
         vendor_guess=row["vendor_guess"],
+        vendor_name=row["vendor_name"],
+        product_code=row["product_code"],
+        product_name=row["product_name"],
+        model_name=row["model_name"],
+        firmware_revision=row["firmware_revision"],
+        device_identification_raw=row["device_identification_raw"],
+        vendor_identification_supported=bool(row["vendor_identification_supported"]),
+        vendor_identification_error=row["vendor_identification_error"],
+        probe_profile_id=row["probe_profile_id"],
+        probe_profile_source=row["probe_profile_source"],
+        probe_quality=row["probe_quality"],
+        probe_status=row["probe_status"],
+        probe_summary_json=row["probe_summary_json"],
         notes=row["notes"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
@@ -34,6 +47,20 @@ def row_to_probe_result(row: sqlite3.Row) -> CandidateProbeResult:
         raw_value=row["raw_value"],
         decoded_value=row["decoded_value"],
         valid=bool(row["valid"]),
+        metric=row["metric"],
+        scale=row["scale"],
+        unit=row["unit"],
+        quality=row["quality"],
+        status=row["status"],
+        source=row["source"],
+        tested_json=row["tested_json"],
+        inferred_json=row["inferred_json"],
+        failure_reason=row["failure_reason"],
+        exception_code=row["exception_code"],
+        response_time_ms=row["response_time_ms"],
+        validated_from_config=bool(row["validated_from_config"]),
+        probe_profile_id=row["probe_profile_id"],
+        probe_profile_source=row["probe_profile_source"],
         created_at=row["created_at"],
     )
 
@@ -90,9 +117,29 @@ def replace_probe_results(
         conn.execute(
             """
             INSERT INTO candidate_probe_results (
-                candidate_id, register_address, function_code, data_type, raw_value, decoded_value, valid
+                candidate_id,
+                register_address,
+                function_code,
+                data_type,
+                raw_value,
+                decoded_value,
+                valid,
+                metric,
+                scale,
+                unit,
+                quality,
+                status,
+                source,
+                tested_json,
+                inferred_json,
+                failure_reason,
+                exception_code,
+                response_time_ms,
+                validated_from_config,
+                probe_profile_id,
+                probe_profile_source
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 candidate_id,
@@ -102,9 +149,71 @@ def replace_probe_results(
                 result.get("raw_value"),
                 result.get("decoded_value"),
                 int(result["valid"]),
+                result.get("metric"),
+                result.get("scale", 1.0),
+                result.get("unit"),
+                result.get("quality", "unknown"),
+                result.get("status", "unknown"),
+                result.get("source", "unknown"),
+                result.get("tested_json", "{}"),
+                result.get("inferred_json", "{}"),
+                result.get("failure_reason"),
+                result.get("exception_code"),
+                result.get("response_time_ms"),
+                int(result.get("validated_from_config", False)),
+                result.get("probe_profile_id"),
+                result.get("probe_profile_source"),
             ),
         )
     return list_probe_results(conn, candidate_id)
+
+
+def update_candidate_probe_metadata(
+    conn: sqlite3.Connection,
+    candidate_id: int,
+    *,
+    metadata: dict,
+) -> DiscoveredCandidate:
+    conn.execute(
+        """
+        UPDATE discovered_candidates
+        SET vendor_name = ?,
+            product_code = ?,
+            product_name = ?,
+            model_name = ?,
+            firmware_revision = ?,
+            device_identification_raw = ?,
+            vendor_identification_supported = ?,
+            vendor_identification_error = ?,
+            probe_profile_id = ?,
+            probe_profile_source = ?,
+            probe_quality = ?,
+            probe_status = ?,
+            probe_summary_json = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (
+            metadata.get("vendor_name"),
+            metadata.get("product_code"),
+            metadata.get("product_name"),
+            metadata.get("model_name"),
+            metadata.get("firmware_revision"),
+            metadata.get("device_identification_raw"),
+            int(metadata.get("vendor_identification_supported", False)),
+            metadata.get("vendor_identification_error"),
+            metadata.get("probe_profile_id"),
+            metadata.get("probe_profile_source"),
+            metadata.get("probe_quality"),
+            metadata.get("probe_status"),
+            metadata.get("probe_summary_json"),
+            candidate_id,
+        ),
+    )
+    candidate = get_candidate(conn, candidate_id)
+    if candidate is None:
+        raise RuntimeError("Candidate disappeared during probe metadata update")
+    return candidate
 
 
 def update_candidate_fingerprint(
@@ -155,8 +264,25 @@ def promote_candidate(
 ) -> tuple[int, int]:
     cursor = conn.execute(
         """
-        INSERT INTO devices (name, host, port, unit_id, description, location, enabled, poll_interval_sec)
-        VALUES (?, ?, ?, ?, ?, ?, 1, 30)
+        INSERT INTO devices (
+            name,
+            host,
+            port,
+            unit_id,
+            description,
+            location,
+            enabled,
+            poll_interval_sec,
+            vendor_name,
+            product_code,
+            product_name,
+            model_name,
+            firmware_revision,
+            device_identification_raw,
+            probe_profile_id,
+            probe_profile_source
+        )
+        VALUES (?, ?, ?, ?, ?, ?, 1, 30, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             payload.device_name,
@@ -165,12 +291,20 @@ def promote_candidate(
             candidate.unit_id,
             payload.description or f"Promoted from discovered candidate #{candidate.id}",
             payload.location,
+            candidate.vendor_name,
+            candidate.product_code,
+            candidate.product_name,
+            candidate.model_name,
+            candidate.firmware_revision,
+            candidate.device_identification_raw,
+            candidate.probe_profile_id,
+            candidate.probe_profile_source,
         ),
     )
     device_id = cursor.lastrowid
     valid_results = [
         result for result in list_probe_results(conn, candidate.id)
-        if result.valid
+        if result.valid and result.validated_from_config
     ]
     for result in valid_results:
         conn.execute(
@@ -178,15 +312,17 @@ def promote_candidate(
             INSERT INTO device_registers (
                 device_id, metric, function_code, address, data_type, scale, unit, description, enabled
             )
-            VALUES (?, ?, ?, ?, ?, 1.0, NULL, ?, 1)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
             """,
             (
                 device_id,
-                f"probed_{result.function_code}_{result.register_address}",
+                result.metric or f"validated_{result.function_code}_{result.register_address}",
                 result.function_code,
                 result.register_address,
                 result.data_type,
-                "Promoted from candidate probe result",
+                result.scale,
+                result.unit,
+                "Validated from configured candidate probe result",
             ),
         )
     conn.execute(

@@ -16,6 +16,14 @@ class DeviceBase(BaseModel):
     location: Optional[str] = None
     enabled: bool = True
     poll_interval_sec: int = Field(default=settings.default_poll_interval_sec)
+    vendor_name: Optional[str] = None
+    product_code: Optional[str] = None
+    product_name: Optional[str] = None
+    model_name: Optional[str] = None
+    firmware_revision: Optional[str] = None
+    device_identification_raw: Optional[str] = None
+    probe_profile_id: Optional[str] = None
+    probe_profile_source: Optional[str] = None
 
 
 class DeviceCreate(DeviceBase):
@@ -31,6 +39,14 @@ class DeviceUpdate(BaseModel):
     location: Optional[str] = None
     enabled: Optional[bool] = None
     poll_interval_sec: Optional[int] = None
+    vendor_name: Optional[str] = None
+    product_code: Optional[str] = None
+    product_name: Optional[str] = None
+    model_name: Optional[str] = None
+    firmware_revision: Optional[str] = None
+    device_identification_raw: Optional[str] = None
+    probe_profile_id: Optional[str] = None
+    probe_profile_source: Optional[str] = None
 
 
 class DeviceRead(DeviceBase):

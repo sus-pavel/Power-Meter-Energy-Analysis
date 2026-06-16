@@ -6,6 +6,8 @@ from backend.app.models.candidate import CandidateProbeResult, DiscoveredCandida
 
 
 SUPPORTED_DEVICE_GUESSES = {
+    "configured_modbus_device",
+    "identified_modbus_device",
     "power_meter",
     "power_quality_meter",
     "energy_analyzer",
@@ -26,22 +28,16 @@ def fingerprint_candidate(
     candidate: DiscoveredCandidate,
     probe_results: list[CandidateProbeResult],
 ) -> FingerprintResult:
-    """Estimate a broad device class from safe probe evidence only."""
-    valid_results = [result for result in probe_results if result.valid]
-    if not valid_results:
-        return FingerprintResult("unknown_modbus_device", 0.2)
+    """Summarize probe evidence without promoting guessed registers to confirmed configuration."""
+    vendor_guess = candidate.vendor_name or candidate.vendor_guess or "unknown"
+    config_validated = [result for result in probe_results if result.valid and result.validated_from_config]
+    if config_validated:
+        return FingerprintResult("configured_modbus_device", 0.9, vendor_guess)
 
-    holding_count = sum(1 for result in valid_results if result.function_code == "holding")
-    input_count = sum(1 for result in valid_results if result.function_code == "input")
-    decoded_values = [result.decoded_value for result in valid_results if result.decoded_value is not None]
-    plausible_energy_values = [
-        value for value in decoded_values if -1_000_000.0 <= value <= 1_000_000.0
-    ]
+    if candidate.vendor_identification_supported:
+        return FingerprintResult("identified_modbus_device", 0.55, vendor_guess)
 
-    if holding_count >= 2 and input_count >= 2 and len(plausible_energy_values) >= 4:
-        return FingerprintResult("energy_analyzer", 0.78)
-    if len(plausible_energy_values) >= 4:
-        return FingerprintResult("power_meter", 0.72)
-    if holding_count + input_count >= 2:
-        return FingerprintResult("industrial_controller", 0.52)
-    return FingerprintResult("unknown_modbus_device", 0.4)
+    if candidate.probe_profile_source == "vendor_default":
+        return FingerprintResult("unknown_modbus_device", 0.45, vendor_guess)
+
+    return FingerprintResult("unknown_modbus_device", 0.25, vendor_guess)
