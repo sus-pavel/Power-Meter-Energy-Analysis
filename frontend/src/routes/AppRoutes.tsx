@@ -5,6 +5,7 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminPage } from "../pages/AdminPage";
 import { AnalyticsPage } from "../pages/AnalyticsPage";
 import { DashboardPage } from "../pages/DashboardPage";
+import { DrpiPage } from "../pages/DrpiPage";
 import { CandidateDetailsPage } from "../pages/CandidateDetailsPage";
 import { CandidatesPage } from "../pages/CandidatesPage";
 import { DeviceDetailsPage } from "../pages/DeviceDetailsPage";
@@ -14,6 +15,8 @@ import { DiscoveryPage } from "../pages/DiscoveryPage";
 import { ForbiddenPage, NotFoundPage, ServerErrorPage, UnauthorizedPage } from "../pages/ErrorPages";
 import { LoginPage } from "../pages/LoginPage";
 import { OperationsPage } from "../pages/OperationsPage";
+import { HistoryPage } from "../pages/HistoryPage";
+import { SsaPage } from "../pages/SsaPage";
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth();
@@ -44,6 +47,9 @@ export function AppRoutes() {
         <Route path="/candidates" element={<CandidatesPage />} />
         <Route path="/candidates/:candidateId" element={<CandidateDetailsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/drpi" element={<DrpiPage />} />
+        <Route path="/ssa" element={<SsaPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

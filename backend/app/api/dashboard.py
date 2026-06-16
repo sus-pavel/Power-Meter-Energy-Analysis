@@ -5,6 +5,10 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
+from backend.app.analytics.aggregation_service import AGGREGATION_TABLES, aggregation_service
+from backend.app.analytics.drpi_app_service import drpi_service
+from backend.app.analytics.manager import analytics_manager
+from backend.app.analytics.retention_service import retention_service
 from backend.app.api.deps import Database, require_permission
 from backend.app.core.config import settings
 from backend.app.core.database import database_status, table_exists
@@ -50,6 +54,29 @@ def dashboard_summary(
     pending_review = conn.execute(
         "SELECT COUNT(*) FROM discovered_candidates WHERE status IN ('discovered', 'reviewed')"
     ).fetchone()[0]
+    latest_power = conn.execute(
+        """
+        SELECT SUM(value) AS total_power
+        FROM measurements_raw r
+        JOIN (
+            SELECT device_id, MAX(timestamp) AS latest_ts
+            FROM measurements_raw
+            WHERE metric = ?
+            GROUP BY device_id
+        ) latest
+          ON latest.device_id = r.device_id
+         AND latest.latest_ts = r.timestamp
+        WHERE r.metric = ?
+        """,
+        (settings.analytics_metric_name, settings.analytics_metric_name),
+    ).fetchone()["total_power"]
+    latest_drpi = conn.execute(
+        "SELECT DRPI FROM app_drpi_results WHERE source_id = 'TOTAL' ORDER BY ts DESC LIMIT 1"
+    ).fetchone()
+    aggregation_counts = {
+        key: conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        for key, table_name in AGGREGATION_TABLES.items()
+    }
     return {
         "devices": device_count,
         "enabled_devices": enabled_device_count,
@@ -61,4 +88,13 @@ def dashboard_summary(
         "mode": settings.app_mode,
         "database": database_status(),
         "measurement_summary": _measurement_summary(),
+        "latest_total_power": float(latest_power) if latest_power is not None else None,
+        "latest_drpi_total": float(latest_drpi["DRPI"]) if latest_drpi else None,
+        "analytics_service_status": {
+            "running": analytics_manager.running,
+            "aggregation": aggregation_service.running,
+            "drpi": drpi_service.running,
+            "retention": retention_service.running,
+        },
+        "aggregation_status": aggregation_counts,
     }

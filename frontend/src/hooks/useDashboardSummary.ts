@@ -4,6 +4,7 @@ import { getDashboardSummary } from "../api/dashboard";
 export function useDashboardSummary() {
   return useQuery({
     queryKey: ["dashboard", "summary"],
-    queryFn: getDashboardSummary
+    queryFn: getDashboardSummary,
+    refetchInterval: 30000
   });
 }

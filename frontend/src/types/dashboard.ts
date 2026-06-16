@@ -9,4 +9,13 @@ export interface DashboardSummary {
   mode: string;
   database: string;
   measurement_summary?: unknown;
+  latest_total_power?: number | null;
+  latest_drpi_total?: number | null;
+  analytics_service_status?: {
+    running: boolean;
+    aggregation: boolean;
+    drpi: boolean;
+    retention: boolean;
+  };
+  aggregation_status?: Record<string, number>;
 }

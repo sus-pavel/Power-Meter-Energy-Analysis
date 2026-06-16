@@ -7,6 +7,9 @@ const ROUTE_ROLES: Record<string, UserRole[]> = {
   "/discovery": ["analyst", "chief_engineer", "admin"],
   "/candidates": ["analyst", "chief_engineer", "admin"],
   "/analytics": ["analyst", "chief_engineer", "admin"],
+  "/history": ["analyst", "chief_engineer", "admin"],
+  "/drpi": ["analyst", "chief_engineer", "admin"],
+  "/ssa": ["analyst", "chief_engineer", "admin"],
   "/admin": ["admin"]
 };
 

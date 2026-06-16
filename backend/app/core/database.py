@@ -187,8 +187,52 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS app_drpi_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                source_id TEXT NOT NULL,
+                F1 REAL NOT NULL,
+                F2 REAL NOT NULL,
+                F3 REAL NOT NULL,
+                R_raw REAL NOT NULL,
+                DRPI REAL NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (ts, source_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_app_drpi_results_ts_source
+            ON app_drpi_results (ts, source_id);
             """
         )
+
+        for table_name in (
+            "measurements_agg_5min",
+            "measurements_agg_10min",
+            "measurements_agg_15min",
+            "measurements_agg_30min",
+            "measurements_agg_1h",
+        ):
+            conn.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    window_start REAL NOT NULL,
+                    window_end REAL NOT NULL,
+                    device_id INTEGER NOT NULL,
+                    metric TEXT NOT NULL,
+                    unit TEXT,
+                    mean_value REAL NOT NULL,
+                    min_value REAL NOT NULL,
+                    max_value REAL NOT NULL,
+                    sample_count INTEGER NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (window_start, window_end, device_id, metric)
+                );
+                """
+            )
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_window_end ON {table_name} (window_end);")
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_device_metric ON {table_name} (device_id, metric);")
 
         columns = {
             row["name"]

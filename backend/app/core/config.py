@@ -32,6 +32,15 @@ class Settings:
     polling_max_parallel_devices: int = 20
     polling_loop_interval_sec: float = 1.0
     polling_modbus_timeout_sec: float = 2.0
+    frontend_api_base_url: str = os.getenv("VITE_API_BASE_URL", "/api")
+    aggregation_poll_interval_sec: float = float(os.getenv("POWERMETER_AGGREGATION_POLL_SECONDS", "30"))
+    drpi_poll_interval_sec: float = float(os.getenv("POWERMETER_DRPI_POLL_SECONDS", "60"))
+    retention_poll_interval_sec: float = float(os.getenv("POWERMETER_RETENTION_POLL_SECONDS", "300"))
+    raw_retention_days: int = int(os.getenv("POWERMETER_RAW_RETENTION_DAYS", "7"))
+    agg_retention_days: int = int(os.getenv("POWERMETER_AGG_RETENTION_DAYS", "365"))
+    drpi_window_size: int = int(os.getenv("POWERMETER_DRPI_WINDOW_SIZE", "288"))
+    drpi_source_mode: str = os.getenv("POWERMETER_DRPI_SOURCE_MODE", "all_plus_total")
+    analytics_metric_name: str = os.getenv("POWERMETER_ANALYTICS_METRIC", "active_power_total")
 
 
 settings = Settings()

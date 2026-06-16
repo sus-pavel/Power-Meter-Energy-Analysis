@@ -6,6 +6,8 @@ import { MeasurementAvailabilityCard } from "../components/MeasurementAvailabili
 import { OperationalStatusCards } from "../components/OperationalStatusCards";
 import { PageHeader } from "../components/PageHeader";
 import { RecentActivityList } from "../components/RecentActivityList";
+import { StatusCard } from "../components/StatusCard";
+import { useDashboardSummary } from "../hooks/useDashboardSummary";
 import { useOperationalDevices, useOperationsEvents, useOperationsStatus, useRecentMeasurements } from "../hooks/useOperations";
 
 export function DashboardPage() {
@@ -13,8 +15,9 @@ export function DashboardPage() {
   const devices = useOperationalDevices(10000);
   const measurements = useRecentMeasurements(10000);
   const events = useOperationsEvents(10000);
-  const loading = status.isLoading || devices.isLoading || measurements.isLoading || events.isLoading;
-  const failed = status.isError || devices.isError || measurements.isError || events.isError;
+  const dashboard = useDashboardSummary();
+  const loading = status.isLoading || devices.isLoading || measurements.isLoading || events.isLoading || dashboard.isLoading;
+  const failed = status.isError || devices.isError || measurements.isError || events.isError || dashboard.isError;
 
   return (
     <>
@@ -23,6 +26,14 @@ export function DashboardPage() {
         {loading ? <LoadingState label="Loading operational dashboard" /> : null}
         {failed ? <ErrorState title="Operations endpoint unavailable" message="Backend unavailable, unauthorized, or operations endpoint failed." /> : null}
         {status.data ? <OperationalStatusCards status={status.data} /> : null}
+        {dashboard.data ? (
+          <div className="grid gap-3 sm:grid-cols-4">
+            <StatusCard label="Latest Total Power" value={dashboard.data.latest_total_power?.toFixed(3) ?? "-"} detail="Configured analytics metric" />
+            <StatusCard label="Latest DRPI TOTAL" value={dashboard.data.latest_drpi_total?.toFixed(3) ?? "-"} />
+            <StatusCard label="Analytics Services" value={dashboard.data.analytics_service_status?.running ? "Running" : "Stopped"} />
+            <StatusCard label="5 min Aggregates" value={dashboard.data.aggregation_status?.["5min"] ?? 0} />
+          </div>
+        ) : null}
         {status.data && devices.data && measurements.data ? <AttentionPanel status={status.data} devices={devices.data} measurements={measurements.data} /> : null}
         {devices.data ? (
           <section className="space-y-2">

@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, Compass, Gauge, LayoutDashboard, MonitorCog, Settings, Wrench } from "lucide-react";
+import { Activity, BarChart3, ClipboardList, Compass, Gauge, LayoutDashboard, LineChart, MonitorCog, Settings, Sigma, Wrench } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "./utils";
 import type { UserRole } from "../types/auth";
@@ -17,6 +17,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Discovery", path: "/discovery", icon: Compass, roles: ["analyst", "chief_engineer", "admin"] },
   { label: "Candidates", path: "/candidates", icon: ClipboardList, roles: ["analyst", "chief_engineer", "admin"] },
   { label: "Analytics", path: "/analytics", icon: BarChart3, roles: ["analyst", "chief_engineer", "admin"] },
+  { label: "History", path: "/history", icon: LineChart, roles: ["analyst", "chief_engineer", "admin"] },
+  { label: "DRPI", path: "/drpi", icon: Activity, roles: ["analyst", "chief_engineer", "admin"] },
+  { label: "SSA", path: "/ssa", icon: Sigma, roles: ["analyst", "chief_engineer", "admin"] },
   { label: "Administration", path: "/admin", icon: Settings, roles: ["admin"] }
 ];
 
