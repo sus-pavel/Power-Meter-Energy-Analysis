@@ -17,13 +17,18 @@ import { LoginPage } from "../pages/LoginPage";
 import { OperationsPage } from "../pages/OperationsPage";
 import { HistoryPage } from "../pages/HistoryPage";
 import { SsaPage } from "../pages/SsaPage";
+import type { DesktopDiagnostics } from "../types/desktop";
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth();
   return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
 }
 
-export function AppRoutes() {
+interface AppRoutesProps {
+  desktopDiagnostics: DesktopDiagnostics | null;
+}
+
+export function AppRoutes({ desktopDiagnostics }: AppRoutesProps) {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
@@ -34,7 +39,7 @@ export function AppRoutes() {
       <Route
         element={
           <ProtectedRoute>
-            <AppLayout />
+            <AppLayout desktopDiagnostics={desktopDiagnostics} />
           </ProtectedRoute>
         }
       >

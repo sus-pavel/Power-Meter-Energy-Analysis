@@ -1,13 +1,36 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+UnitIdScanMode = Literal["quick", "extended", "full", "custom"]
 
 
 class ScanCreateRequest(BaseModel):
     ip_start: str = Field(min_length=1, max_length=45)
     ip_end: str = Field(min_length=1, max_length=45)
+    unit_id_scan_mode: UnitIdScanMode = "quick"
+    unit_ids: Optional[list[int]] = None
+    timeout_seconds: Optional[float] = Field(default=None, ge=0.5, le=10.0)
+    max_concurrent_hosts: Optional[int] = Field(default=None, ge=1)
+
+    @field_validator("unit_ids")
+    @classmethod
+    def validate_unit_ids(cls, value: Optional[list[int]]) -> Optional[list[int]]:
+        if value is None:
+            return None
+        for unit_id in value:
+            if unit_id < 0 or unit_id > 255:
+                raise ValueError("Unit IDs must be between 0 and 255")
+        return value
+
+    @model_validator(mode="after")
+    def validate_custom_unit_ids(self) -> "ScanCreateRequest":
+        if self.unit_id_scan_mode == "custom" and not self.unit_ids:
+            raise ValueError("unit_ids is required for custom Unit ID scan mode")
+        return self
 
 
 class ScanCreateResponse(BaseModel):
@@ -27,6 +50,10 @@ class ScanJobRead(BaseModel):
     total_hosts: int
     processed_hosts: int
     found_hosts: int
+    unit_id_scan_mode: str
+    unit_ids: list[int]
+    timeout_seconds: Optional[float]
+    max_concurrent_hosts: Optional[int]
     error_message: Optional[str]
     progress_percent: float
 

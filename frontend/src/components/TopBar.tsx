@@ -1,13 +1,16 @@
 import { Activity } from "lucide-react";
+import { DesktopStatusStrip } from "./DesktopStatusStrip";
 import { UserMenu } from "./UserMenu";
 import type { CurrentUser } from "../types/auth";
+import type { DesktopDiagnostics } from "../types/desktop";
 
 interface TopBarProps {
   user: CurrentUser;
   onLogout: () => void;
+  desktopDiagnostics: DesktopDiagnostics | null;
 }
 
-export function TopBar({ user, onLogout }: TopBarProps) {
+export function TopBar({ user, onLogout, desktopDiagnostics }: TopBarProps) {
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-5">
       <div className="flex items-center gap-3">
@@ -19,7 +22,10 @@ export function TopBar({ user, onLogout }: TopBarProps) {
           <p className="text-xs text-muted-foreground">Local energy monitoring</p>
         </div>
       </div>
-      <UserMenu user={user} onLogout={onLogout} />
+      <div className="flex items-center gap-3">
+        <DesktopStatusStrip diagnostics={desktopDiagnostics} />
+        <UserMenu user={user} onLogout={onLogout} />
+      </div>
     </header>
   );
 }

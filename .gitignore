@@ -36,6 +36,12 @@ data/*
 logs/
 tmp/
 temp/
+
+# Desktop packaging build artifacts
+backend/build/
+backend/dist/
+src-tauri/target/
+frontend/*.tsbuildinfo
 docs/GITHUB_VISIBILITY.md
 docs/RELEASE_PLAN.md
 docs/REPOSITORY_REVIEW.md

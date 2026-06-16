@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.analytics.manager import analytics_manager
 from backend.app.api import auth, candidates, dashboard, devices, discovery, drpi, health, operations, polling, ssa, trends, users
@@ -10,8 +11,16 @@ from backend.app.core.database import init_db
 
 app = FastAPI(
     title="PowerMeter App Backend",
-    version="0.5.0-analytics-and-trends",
+    version="0.2.0",
     description="Local-first application backend for PowerMeter.",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^(tauri|http|https)://(localhost|tauri\.localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

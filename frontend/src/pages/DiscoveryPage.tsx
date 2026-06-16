@@ -11,7 +11,7 @@ import { LoadingState } from "../components/LoadingState";
 import { PageHeader } from "../components/PageHeader";
 import { useDiscoveryJobs } from "../hooks/useDiscovery";
 import { usePermissions } from "../hooks/usePermissions";
-import type { ScanJob } from "../types/discovery";
+import type { ScanJob, UnitIdScanMode } from "../types/discovery";
 
 function ipToNumber(ip: string) {
   const parts = ip.split(".").map(Number);
@@ -28,6 +28,10 @@ export function DiscoveryPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [ipStart, setIpStart] = useState("192.168.1.1");
   const [ipEnd, setIpEnd] = useState("192.168.1.254");
+  const [unitIdScanMode, setUnitIdScanMode] = useState<UnitIdScanMode>("quick");
+  const [customUnitIds, setCustomUnitIds] = useState("");
+  const [timeoutSeconds, setTimeoutSeconds] = useState("2.0");
+  const [maxConcurrentHosts, setMaxConcurrentHosts] = useState("5");
   const [formError, setFormError] = useState<string | null>(null);
   const [cancelJob, setCancelJob] = useState<ScanJob | null>(null);
 
@@ -73,7 +77,37 @@ export function DiscoveryPage() {
       setFormError("Range is limited to 1024 hosts from the UI.");
       return;
     }
-    createMutation.mutate({ ip_start: ipStart, ip_end: ipEnd });
+    const timeout = Number(timeoutSeconds);
+    if (!Number.isFinite(timeout) || timeout < 0.5 || timeout > 10) {
+      setFormError("Timeout must be between 0.5 and 10.0 seconds.");
+      return;
+    }
+    const concurrency = Number(maxConcurrentHosts);
+    if (!Number.isInteger(concurrency) || concurrency < 1) {
+      setFormError("Max concurrent hosts must be at least 1.");
+      return;
+    }
+    const payload = {
+      ip_start: ipStart,
+      ip_end: ipEnd,
+      unit_id_scan_mode: unitIdScanMode,
+      timeout_seconds: timeout,
+      max_concurrent_hosts: concurrency
+    };
+    if (unitIdScanMode === "custom") {
+      const unitIds = customUnitIds.split(",").map((value) => value.trim()).filter(Boolean).map(Number);
+      if (unitIds.length === 0) {
+        setFormError("Enter at least one custom Unit ID.");
+        return;
+      }
+      if (unitIds.some((unitId) => !Number.isInteger(unitId) || unitId < 0 || unitId > 255)) {
+        setFormError("Custom Unit IDs must be whole numbers from 0 to 255.");
+        return;
+      }
+      createMutation.mutate({ ...payload, unit_ids: unitIds });
+      return;
+    }
+    createMutation.mutate(payload);
   }
 
   return (
@@ -98,11 +132,31 @@ export function DiscoveryPage() {
       </div>
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-          <form onSubmit={submit} className="w-full max-w-md rounded-md border border-border bg-card p-5 shadow-lg">
+          <form onSubmit={submit} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-md border border-border bg-card p-5 shadow-lg">
             <h2 className="text-base font-semibold">Start Discovery Scan</h2>
             <div className="mt-4 grid gap-3">
               <label className="text-sm font-medium">Start IP<input className="mt-1 h-9 w-full rounded-md border border-border px-3" value={ipStart} onChange={(e) => setIpStart(e.target.value)} /></label>
               <label className="text-sm font-medium">End IP<input className="mt-1 h-9 w-full rounded-md border border-border px-3" value={ipEnd} onChange={(e) => setIpEnd(e.target.value)} /></label>
+              <label className="text-sm font-medium">
+                Unit ID scan mode
+                <select className="mt-1 h-9 w-full rounded-md border border-border px-3" value={unitIdScanMode} onChange={(e) => setUnitIdScanMode(e.target.value as UnitIdScanMode)}>
+                  <option value="quick">Quick</option>
+                  <option value="extended">Extended</option>
+                  <option value="full">Full</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              {unitIdScanMode === "full" ? <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">Use only for one host or a small IP range.</p> : null}
+              {unitIdScanMode === "custom" ? (
+                <label className="text-sm font-medium">
+                  Custom Unit IDs
+                  <input className="mt-1 h-9 w-full rounded-md border border-border px-3" placeholder="7, 11, 17, 31" value={customUnitIds} onChange={(e) => setCustomUnitIds(e.target.value)} />
+                </label>
+              ) : null}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-medium">Timeout<input className="mt-1 h-9 w-full rounded-md border border-border px-3" inputMode="decimal" value={timeoutSeconds} onChange={(e) => setTimeoutSeconds(e.target.value)} /></label>
+                <label className="text-sm font-medium">Max concurrent hosts<input className="mt-1 h-9 w-full rounded-md border border-border px-3" inputMode="numeric" value={maxConcurrentHosts} onChange={(e) => setMaxConcurrentHosts(e.target.value)} /></label>
+              </div>
             </div>
             {formError ? <p className="mt-3 text-sm text-red-700">{formError}</p> : null}
             <div className="mt-5 flex justify-end gap-2">

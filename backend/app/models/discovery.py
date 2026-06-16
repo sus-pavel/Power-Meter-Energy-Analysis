@@ -17,6 +17,10 @@ class ScanJob:
     total_hosts: int
     processed_hosts: int
     found_hosts: int
+    unit_id_scan_mode: str
+    unit_ids: list[int]
+    timeout_seconds: Optional[float]
+    max_concurrent_hosts: Optional[int]
     error_message: Optional[str]
 
 

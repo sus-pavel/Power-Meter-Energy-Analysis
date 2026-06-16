@@ -11,5 +11,6 @@ class User:
     full_name: str | None
     role: str
     is_active: bool
+    must_change_password: bool
     created_at: str
     updated_at: str

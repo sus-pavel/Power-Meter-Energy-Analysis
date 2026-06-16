@@ -27,5 +27,6 @@ class UserUpdate(BaseModel):
 
 class UserRead(UserBase):
     id: int
+    must_change_password: bool = False
     created_at: str
     updated_at: str

@@ -1,60 +1,63 @@
 # PowerMeter App Architecture
 
-PowerMeter now has two product directions that should stay deliberately separate.
+PowerMeter App is a local-first desktop application for Modbus TCP energy monitoring and analytics.
 
-## Branches
+The v0.2.0 macOS beta combines a Tauri desktop shell, React/Vite frontend, FastAPI backend, SQLite database, Modbus TCP discovery/probing/polling, historical trends, DRPI analytics, and SSA analytics.
 
-`Base_Research_Prototype` preserves the research prototype: Modbus polling, SQLite writes, aggregation, DRPI, SSA, and the existing dashboard modules.
-
-`App` is the product branch. It keeps the prototype available, but starts adding a local-first application backend around users, roles, device management, audit logging, and future packaging.
-
-## Backend Layout
-
-The application backend lives under `backend/app`:
-
-```text
-backend/app/
-  main.py
-  core/
-  models/
-  schemas/
-  services/
-  api/
+```mermaid
+flowchart LR
+    A["Tauri shell"] --> B["React frontend"]
+    A --> C["FastAPI backend process"]
+    C --> D["SQLite app.sqlite"]
+    C --> E["Modbus TCP devices"]
+    C --> F["Aggregation"]
+    F --> G["History"]
+    F --> H["DRPI"]
+    F --> I["SSA"]
 ```
 
-The existing prototype modules remain in place:
+## Desktop Runtime
+
+The packaged app stores runtime state under:
 
 ```text
-core/
-services/
-web/
-config/
-main.py
+~/Library/Application Support/PowerMeter/
 ```
 
-## Roles
+The backend is bundled into:
 
-PowerMeter uses four roles:
+```text
+PowerMeter.app/Contents/Resources/backend/
+```
 
-- `admin`: manages users, roles, devices, settings, database, and audit logs.
-- `chief_engineer`: manages Modbus TCP devices and uses dashboards and analytics.
-- `analyst`: views dashboards and analytics, and exports analytical data.
-- `guest`: read-only dashboard access with sensitive device details hidden where practical.
+The executable launched by Tauri is:
 
-## Future Modbus Discovery Workflow
+```text
+PowerMeter.app/Contents/Resources/backend/powermeter-backend
+```
 
-Stage 2 will add a safe discovery flow:
+Tauri launches the backend with `std::process::Command`, redirects stdout and stderr to app logs, waits for `/api/health`, and terminates only the child process it created when the app exits.
 
-1. Scan a configured IP range.
-2. Check Modbus TCP port `502`.
-3. Test Modbus TCP connectivity.
-4. Scan configured `unit_id` values.
-5. Probe selected registers safely.
-6. Save discovered candidates.
-7. Promote candidates into managed devices.
+## Backend
 
-Stage 1 only exposes a placeholder probe endpoint and performs no network scanning.
+The backend exposes authentication, discovery, candidate probing, device management, polling, measurement, aggregation, history, DRPI, SSA, health, and desktop diagnostics APIs.
 
-## Future Desktop Packaging
+Desktop mode uses:
 
-The app backend is designed to be wrapped later by Tauri or a similar desktop shell. The target model is local SQLite storage, local FastAPI backend, and a frontend that can run in the desktop wrapper while retaining the current research tools for analytics.
+```text
+POWERMETER_DESKTOP=1
+POWERMETER_HOST=127.0.0.1
+POWERMETER_PORT=8765
+POWERMETER_APP_DATA_DIR=~/Library/Application Support/PowerMeter
+POWERMETER_DB_PATH=~/Library/Application Support/PowerMeter/app.sqlite
+```
+
+## Frontend
+
+The React/Vite frontend uses `VITE_API_BASE_URL` or `http://127.0.0.1:8000` in browser development mode. In desktop mode it uses `http://127.0.0.1:8765`.
+
+The desktop startup screen checks backend health, fetches desktop diagnostics, and then enters the main app. A diagnostics fetch failure is non-blocking if health is already OK.
+
+## Analytics
+
+The app preserves the existing DRPI and SSA mathematical logic from the research prototype. Desktop packaging and UI work should not alter those formulas.

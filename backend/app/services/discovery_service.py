@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import json
+import logging
 import sqlite3
 import struct
 import time
@@ -20,6 +21,11 @@ from backend.app.services.candidate_service import create_candidates_from_scan_r
 
 
 RUNNING_STATUSES = {"pending", "running"}
+QUICK_UNIT_IDS = [0, 1, 2, 3, 4, 5, 10, 16, 17, 20, 100, 247, 255]
+EXTENDED_UNIT_IDS = list(range(0, 33)) + [100, 101, 247, 255]
+FULL_UNIT_IDS = list(range(1, 248))
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -44,6 +50,10 @@ def row_to_scan_job(row: sqlite3.Row) -> ScanJob:
         total_hosts=row["total_hosts"],
         processed_hosts=row["processed_hosts"],
         found_hosts=row["found_hosts"],
+        unit_id_scan_mode=row["unit_id_scan_mode"],
+        unit_ids=json.loads(row["unit_ids_json"] or "[]"),
+        timeout_seconds=row["timeout_seconds"],
+        max_concurrent_hosts=row["max_concurrent_hosts"],
         error_message=row["error_message"],
     )
 
@@ -97,14 +107,110 @@ def iter_ip_range(ip_start: str, ip_end: str) -> Iterable[str]:
         yield str(ipaddress.ip_address(value))
 
 
+def normalize_unit_ids(unit_ids: Iterable[int]) -> list[int]:
+    normalized: set[int] = set()
+    for value in unit_ids:
+        unit_id = int(value)
+        if unit_id < 0 or unit_id > 255:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Unit IDs must be between 0 and 255",
+            )
+        normalized.add(unit_id)
+    return sorted(normalized)
+
+
+def resolve_unit_ids_for_scan(payload: ScanCreateRequest, total_hosts: int) -> list[int]:
+    if payload.unit_id_scan_mode == "quick":
+        unit_ids = normalize_unit_ids(settings.discovery_quick_unit_ids or QUICK_UNIT_IDS)
+    elif payload.unit_id_scan_mode == "extended":
+        unit_ids = normalize_unit_ids(settings.discovery_extended_unit_ids or EXTENDED_UNIT_IDS)
+    elif payload.unit_id_scan_mode == "full":
+        if total_hosts > settings.discovery_full_scan_max_hosts:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "Full Unit ID scan is limited to "
+                    f"{settings.discovery_full_scan_max_hosts} hosts"
+                ),
+            )
+        unit_ids = normalize_unit_ids(FULL_UNIT_IDS)
+    elif payload.unit_id_scan_mode == "custom":
+        if not payload.unit_ids:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="unit_ids is required for custom Unit ID scan mode",
+            )
+        unit_ids = normalize_unit_ids(payload.unit_ids)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Unsupported Unit ID scan mode",
+        )
+
+    if not unit_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="At least one Unit ID is required",
+        )
+
+    total_unit_id_probes = total_hosts * len(unit_ids)
+    # Extended mode is an explicit operator-selected broader scan and is still bounded by host range limits.
+    if total_unit_id_probes > settings.discovery_max_unit_ids_per_scan and payload.unit_id_scan_mode != "extended":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "Discovery scan is limited to "
+                f"{settings.discovery_max_unit_ids_per_scan} host/Unit ID combinations"
+            ),
+        )
+    return unit_ids
+
+
+def resolve_timeout_seconds(payload: ScanCreateRequest) -> float:
+    return payload.timeout_seconds or settings.discovery_default_timeout_seconds
+
+
+def resolve_max_concurrent_hosts(payload: ScanCreateRequest) -> int:
+    max_concurrent_hosts = payload.max_concurrent_hosts or settings.discovery_real_network_max_concurrent_hosts
+    if max_concurrent_hosts > settings.discovery_max_concurrent_hosts:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"max_concurrent_hosts is limited to {settings.discovery_max_concurrent_hosts}",
+        )
+    return max_concurrent_hosts
+
+
 def create_scan_job(conn: sqlite3.Connection, payload: ScanCreateRequest, user_id: int) -> ScanJob:
     ip_start, ip_end, total_hosts = validate_ip_range(payload)
+    unit_ids = resolve_unit_ids_for_scan(payload, total_hosts)
+    timeout_seconds = resolve_timeout_seconds(payload)
+    max_concurrent_hosts = resolve_max_concurrent_hosts(payload)
     cursor = conn.execute(
         """
-        INSERT INTO scan_jobs (created_by_user_id, status, ip_start, ip_end, total_hosts)
-        VALUES (?, 'pending', ?, ?, ?)
+        INSERT INTO scan_jobs (
+            created_by_user_id,
+            status,
+            ip_start,
+            ip_end,
+            total_hosts,
+            unit_id_scan_mode,
+            unit_ids_json,
+            timeout_seconds,
+            max_concurrent_hosts
+        )
+        VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?)
         """,
-        (user_id, str(ip_start), str(ip_end), total_hosts),
+        (
+            user_id,
+            str(ip_start),
+            str(ip_end),
+            total_hosts,
+            payload.unit_id_scan_mode,
+            json.dumps(unit_ids),
+            timeout_seconds,
+            max_concurrent_hosts,
+        ),
     )
     job = get_scan_job(conn, cursor.lastrowid)
     if job is None:
@@ -216,12 +322,12 @@ def _store_result(conn: sqlite3.Connection, job_id: int, outcome: HostScanOutcom
         )
 
 
-async def _tcp_port_open(ip_address: str) -> bool:
+async def _tcp_port_open(ip_address: str, timeout_seconds: float) -> bool:
     writer: Optional[asyncio.StreamWriter] = None
     try:
         _, writer = await asyncio.wait_for(
             asyncio.open_connection(ip_address, settings.discovery_port),
-            timeout=settings.discovery_timeout_seconds,
+            timeout=timeout_seconds,
         )
         return True
     except (OSError, asyncio.TimeoutError):
@@ -232,51 +338,110 @@ async def _tcp_port_open(ip_address: str) -> bool:
             await writer.wait_closed()
 
 
-async def _modbus_unit_responds(ip_address: str, unit_id: int) -> bool:
+async def _send_modbus_request(
+    ip_address: str,
+    unit_id: int,
+    function_code: int,
+    payload: bytes,
+    timeout_seconds: float,
+) -> tuple[bool, str | None]:
     writer: Optional[asyncio.StreamWriter] = None
-    transaction_id = (unit_id + 1) % 65535
+    transaction_id = (int(time.monotonic() * 1000) + unit_id + function_code) % 65535 or 1
     try:
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(ip_address, settings.discovery_port),
-            timeout=settings.discovery_timeout_seconds,
+            timeout=timeout_seconds,
         )
-        pdu = struct.pack(">BHH", 0x03, 0, 1)
+        pdu = bytes([function_code]) + payload
         mbap = struct.pack(">HHHB", transaction_id, 0, len(pdu) + 1, unit_id)
         writer.write(mbap + pdu)
-        await asyncio.wait_for(writer.drain(), timeout=settings.discovery_timeout_seconds)
+        await asyncio.wait_for(writer.drain(), timeout=timeout_seconds)
 
-        header = await asyncio.wait_for(reader.readexactly(7), timeout=settings.discovery_timeout_seconds)
+        header = await asyncio.wait_for(reader.readexactly(7), timeout=timeout_seconds)
         response_tid, protocol_id, length, response_unit = struct.unpack(">HHHB", header)
-        if response_tid != transaction_id or protocol_id != 0 or response_unit != unit_id or length < 2:
-            return False
+        if response_tid != transaction_id:
+            return False, "transaction_id_mismatch"
+        if protocol_id != 0:
+            return False, "invalid_protocol_id"
+        if response_unit != unit_id:
+            return False, "unit_id_mismatch"
+        if length < 2:
+            return False, "invalid_mbap_length"
 
-        pdu_response = await asyncio.wait_for(reader.readexactly(length - 1), timeout=settings.discovery_timeout_seconds)
+        pdu_response = await asyncio.wait_for(reader.readexactly(length - 1), timeout=timeout_seconds)
         if not pdu_response:
-            return False
-        function_code = pdu_response[0]
-        return function_code in (0x03, 0x83)
+            return False, "empty_pdu_response"
+        response_function_code = pdu_response[0]
+        if response_function_code == function_code:
+            return True, "normal_response"
+        if response_function_code == (function_code | 0x80):
+            return True, "exception_response"
+        return False, f"unexpected_function_code_{response_function_code:#04x}"
     except (OSError, asyncio.IncompleteReadError, asyncio.TimeoutError, struct.error):
-        return False
+        return False, None
     finally:
         if writer is not None:
             writer.close()
             await writer.wait_closed()
 
 
-async def scan_host(ip_address: str, cancel_event: asyncio.Event) -> HostScanOutcome:
+async def _modbus_unit_responds(ip_address: str, unit_id: int, timeout_seconds: float) -> bool:
+    probes = (
+        (0x2B, bytes([0x0E, 0x01, 0x00]), "fc43_read_device_identification"),
+        (0x03, struct.pack(">HH", 0, 1), "fc03_holding_register_0"),
+        (0x04, struct.pack(">HH", 0, 1), "fc04_input_register_0"),
+    )
+    diagnostics: list[str] = []
+    for function_code, payload, label in probes:
+        responding, diagnostic = await _send_modbus_request(
+            ip_address=ip_address,
+            unit_id=unit_id,
+            function_code=function_code,
+            payload=payload,
+            timeout_seconds=timeout_seconds,
+        )
+        if responding:
+            if diagnostic:
+                logger.debug(
+                    "Modbus Unit ID responded: ip=%s unit_id=%s probe=%s diagnostic=%s",
+                    ip_address,
+                    unit_id,
+                    label,
+                    diagnostic,
+                )
+            return True
+        if diagnostic:
+            diagnostics.append(f"{label}:{diagnostic}")
+
+    if diagnostics:
+        logger.debug(
+            "Modbus Unit ID probe failed: ip=%s unit_id=%s diagnostics=%s",
+            ip_address,
+            unit_id,
+            diagnostics,
+        )
+    return False
+
+
+async def scan_host(
+    ip_address: str,
+    unit_ids: list[int],
+    timeout_seconds: float,
+    cancel_event: asyncio.Event,
+) -> HostScanOutcome:
     if cancel_event.is_set():
         return HostScanOutcome(ip_address, False, False, None, [])
 
     started = time.perf_counter()
-    tcp_open = await _tcp_port_open(ip_address)
+    tcp_open = await _tcp_port_open(ip_address, timeout_seconds)
     if not tcp_open or cancel_event.is_set():
         return HostScanOutcome(ip_address, tcp_open, False, None, [])
 
     candidate_unit_ids: list[int] = []
-    for unit_id in settings.discovery_candidate_unit_ids:
+    for unit_id in unit_ids:
         if cancel_event.is_set():
             break
-        if await _modbus_unit_responds(ip_address, unit_id):
+        if await _modbus_unit_responds(ip_address, unit_id, timeout_seconds):
             candidate_unit_ids.append(unit_id)
 
     elapsed_ms = round((time.perf_counter() - started) * 1000, 2) if candidate_unit_ids else None
@@ -313,6 +478,12 @@ class DiscoveryRuntime:
                 job = get_scan_job(conn, job_id)
                 if job is None:
                     return
+                unit_ids = job.unit_ids
+                timeout_seconds = job.timeout_seconds or settings.discovery_default_timeout_seconds
+                max_concurrent_hosts = (
+                    job.max_concurrent_hosts
+                    or settings.discovery_real_network_max_concurrent_hosts
+                )
 
             queue: asyncio.Queue[str] = asyncio.Queue()
             for ip_address in iter_ip_range(job.ip_start, job.ip_end):
@@ -325,7 +496,7 @@ class DiscoveryRuntime:
                     except asyncio.QueueEmpty:
                         return
                     try:
-                        outcome = await scan_host(ip_address, cancel_event)
+                        outcome = await scan_host(ip_address, unit_ids, timeout_seconds, cancel_event)
                         if cancel_event.is_set():
                             return
                         with get_connection() as conn:
@@ -336,7 +507,7 @@ class DiscoveryRuntime:
 
             workers = [
                 asyncio.create_task(worker())
-                for _ in range(min(settings.discovery_max_concurrent_hosts, job.total_hosts))
+                for _ in range(min(max_concurrent_hosts, job.total_hosts))
             ]
             await asyncio.gather(*workers)
 

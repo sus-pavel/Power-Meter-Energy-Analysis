@@ -2,32 +2,36 @@
 
 All notable changes to PowerMeter will be documented in this file.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project is intended to use semantic versioning for public releases.
+## PowerMeter App v0.2.0 — macOS Desktop Beta
 
-## [v0.1.0] - Unreleased
+### Added
+
+- Added macOS desktop packaging with Tauri v2.
+- Added FastAPI backend sidecar mode.
+- Added local SQLite app data directory.
+- Added Modbus TCP discovery/probing/promotion workflow.
+- Added configurable Unit ID discovery modes.
+- Added polling engine.
+- Added historical trends.
+- Added DRPI analytics.
+- Added SSA analytics.
+- Added React dashboard and analytics UI.
+- Added desktop troubleshooting/reset scripts.
+
+### Known Limitations
+
+- macOS app is unsigned and not notarized.
+- Beta packaging currently targets macOS only.
+- Modbus register maps may require manual configuration for specific meters.
+- PowerMeter is local-first and has no cloud sync.
+- PowerMeter is not a SCADA/control platform.
+- No auto-update flow is included.
+- Automated end-to-end test coverage is still limited.
+
+## v0.1.0 - Research Prototype Baseline
 
 ### Added
 
 - Modbus TCP data collection from YAML-defined devices.
-- Support for holding and input registers.
-- Register decoding for `float32`, `float32_swapped`, `uint16`, `int16`, `uint32`, and `int32`.
-- Configurable Modbus address modes: `minus_400000`, `minus_400001`, and `raw`.
-- Diagnostic Modbus collector for register-offset and decoding validation.
-- Batch SQLite writer with configurable PRAGMA settings, retry behavior, batch size, and flush interval.
-- Raw measurement storage in `raw_data`.
-- Aggregation service for 5, 10, 15, 30, and 60 minute windows.
-- Raw-data retention policy with a default of 24 hours.
-- DRPI calculation for individual meters and total active-power consumption.
-- DRPI result storage with `F1`, `F2`, `F3`, `R_raw`, and `DRPI`.
-- SSA decomposition engine with trajectory matrix construction, SVD, reconstructed components, contribution calculation, W-correlation, and KMeans clustering.
-- FastAPI dashboard application with overview, history, DRPI, and SSA pages.
-- JSON API endpoints for overview, history, DRPI, and SSA analysis.
-- Swagger/OpenAPI documentation through FastAPI at `/docs`.
-- Raspberry Pi deployment documentation.
-- English README entry point, Russian README, citation support, method docs, roadmap, contribution guide, release plan, demo-mode plan, GitHub visibility guide, and repository review.
-
-### Known Limitations
-
-- No implemented demo mode yet.
-- No complete automated test suite yet.
-- SSA runs are computed on demand through the web/API layer and are not persisted as versioned research runs.
+- SQLite writer, aggregation windows, DRPI calculation, and SSA decomposition modules.
+- Original FastAPI dashboard pages and method documentation.

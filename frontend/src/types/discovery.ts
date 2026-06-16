@@ -1,4 +1,5 @@
 export type ScanJobStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+export type UnitIdScanMode = "quick" | "extended" | "full" | "custom";
 
 export interface ScanJob {
   id: number;
@@ -12,6 +13,10 @@ export interface ScanJob {
   total_hosts: number;
   processed_hosts: number;
   found_hosts: number;
+  unit_id_scan_mode: UnitIdScanMode;
+  unit_ids: number[];
+  timeout_seconds: number | null;
+  max_concurrent_hosts: number | null;
   error_message: string | null;
   progress_percent: number;
 }
@@ -32,4 +37,8 @@ export interface ScanResult {
 export interface ScanCreatePayload {
   ip_start: string;
   ip_end: string;
+  unit_id_scan_mode?: UnitIdScanMode;
+  unit_ids?: number[];
+  timeout_seconds?: number;
+  max_concurrent_hosts?: number;
 }

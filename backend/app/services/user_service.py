@@ -15,6 +15,7 @@ def row_to_user(row: sqlite3.Row) -> User:
         full_name=row["full_name"],
         role=row["role"],
         is_active=bool(row["is_active"]),
+        must_change_password=bool(row["must_change_password"]),
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -59,6 +60,7 @@ def update_user(conn: sqlite3.Connection, user_id: int, payload: UserUpdate) -> 
     values = payload.model_dump(exclude_unset=True)
     if "password" in values:
         values["password_hash"] = hash_password(values.pop("password"))
+        values["must_change_password"] = 0
     if "role" in values and values["role"] is not None:
         values["role"] = values["role"].value
     if "is_active" in values and values["is_active"] is not None:

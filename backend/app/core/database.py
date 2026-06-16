@@ -45,6 +45,7 @@ def init_db() -> None:
                 full_name TEXT,
                 role TEXT NOT NULL CHECK (role IN ('admin', 'chief_engineer', 'analyst', 'guest')),
                 is_active INTEGER NOT NULL DEFAULT 1,
+                must_change_password INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -102,6 +103,10 @@ def init_db() -> None:
                 total_hosts INTEGER NOT NULL DEFAULT 0,
                 processed_hosts INTEGER NOT NULL DEFAULT 0,
                 found_hosts INTEGER NOT NULL DEFAULT 0,
+                unit_id_scan_mode TEXT NOT NULL DEFAULT 'quick',
+                unit_ids_json TEXT NOT NULL DEFAULT '[]',
+                timeout_seconds REAL,
+                max_concurrent_hosts INTEGER,
                 error_message TEXT,
                 FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
             );
@@ -234,12 +239,32 @@ def init_db() -> None:
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_window_end ON {table_name} (window_end);")
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_device_metric ON {table_name} (device_id, metric);")
 
+        user_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(users)").fetchall()
+        }
+        if "must_change_password" not in user_columns:
+            conn.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
+
         columns = {
             row["name"]
             for row in conn.execute("PRAGMA table_info(devices)").fetchall()
         }
         if "poll_interval_sec" not in columns:
             conn.execute("ALTER TABLE devices ADD COLUMN poll_interval_sec INTEGER NOT NULL DEFAULT 30")
+
+        scan_job_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(scan_jobs)").fetchall()
+        }
+        if "unit_id_scan_mode" not in scan_job_columns:
+            conn.execute("ALTER TABLE scan_jobs ADD COLUMN unit_id_scan_mode TEXT NOT NULL DEFAULT 'quick'")
+        if "unit_ids_json" not in scan_job_columns:
+            conn.execute("ALTER TABLE scan_jobs ADD COLUMN unit_ids_json TEXT NOT NULL DEFAULT '[]'")
+        if "timeout_seconds" not in scan_job_columns:
+            conn.execute("ALTER TABLE scan_jobs ADD COLUMN timeout_seconds REAL")
+        if "max_concurrent_hosts" not in scan_job_columns:
+            conn.execute("ALTER TABLE scan_jobs ADD COLUMN max_concurrent_hosts INTEGER")
 
         conn.execute(
             """
@@ -255,8 +280,8 @@ def init_db() -> None:
         if user_count == 0:
             conn.execute(
                 """
-                INSERT INTO users (username, password_hash, full_name, role, is_active)
-                VALUES (?, ?, ?, ?, 1)
+                INSERT INTO users (username, password_hash, full_name, role, is_active, must_change_password)
+                VALUES (?, ?, ?, ?, 1, 1)
                 """,
                 (
                     settings.default_admin_username,

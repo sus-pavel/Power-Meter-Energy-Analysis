@@ -1,0 +1,16 @@
+[package]
+name = "powermeter-desktop"
+version = "0.2.0"
+description = "PowerMeter desktop shell"
+authors = ["PowerMeter"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+anyhow = "1"
+dirs = "5"
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }

@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for considering a contribution to PowerMeter. The project combines field data acquisition, local storage, web dashboards, and research analytics, so contributions should be careful, reproducible, and well documented.
+Thank you for considering a contribution to PowerMeter. The app fork combines field-device discovery, local storage, desktop packaging, web UI, and research analytics, so contributions should be careful, reproducible, and well documented.
 
 ## Contribution Areas
 
@@ -8,10 +8,9 @@ Useful contributions include:
 
 - documentation improvements;
 - examples for Modbus meter configuration;
-- tests for DRPI, SSA, aggregation, and Modbus decoding;
+- tests for discovery, polling, aggregation, DRPI, SSA, and Modbus decoding;
+- desktop packaging fixes;
 - dashboard usability improvements;
-- deployment guides;
-- demo-mode design or implementation;
 - research validation and reproducibility materials.
 
 ## Before Opening an Issue
@@ -26,7 +25,7 @@ Check whether the issue is related to:
 - dashboard query period;
 - unsupported aggregation interval.
 
-For Modbus problems, run:
+For legacy Modbus collector problems, run:
 
 ```bash
 python -m services.debug_collector
@@ -40,7 +39,7 @@ Please include:
 
 - operating system and Python version;
 - PowerMeter version or commit hash;
-- whether the issue occurs in the pipeline, web app, or both;
+- whether the issue occurs in backend, frontend, desktop shell, or legacy prototype pipeline;
 - relevant command;
 - sanitized configuration snippet;
 - sanitized logs or traceback;
@@ -68,8 +67,9 @@ Do not include real industrial network addresses, credentials, private site name
   - aggregator builds time windows;
   - DRPI service orchestrates DRPI calculation;
   - core modules contain calculation logic;
-  - web routes expose dashboard/API behavior.
-- Prefer existing configuration patterns in `config/*.yaml`.
+  - API routes expose backend behavior;
+  - Tauri supervises only the child process it launched.
+- Prefer existing configuration and API patterns.
 - Avoid hard-coding private device addresses or site-specific register maps.
 - Keep comments focused on non-obvious engineering decisions.
 - Keep public documentation in professional English unless the file is explicitly Russian-language documentation.

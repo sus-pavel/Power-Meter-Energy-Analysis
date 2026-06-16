@@ -1,9 +1,10 @@
 import axios, { AxiosError } from "axios";
+import { getApiBaseUrl } from "./baseUrl";
 
 const TOKEN_KEY = "powermeter.token";
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api",
+  baseURL: getApiBaseUrl(),
   timeout: 15000,
   headers: {
     "Content-Type": "application/json"
